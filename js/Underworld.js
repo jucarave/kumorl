@@ -3,10 +3,11 @@ var KT = {};
 
 KT.Canvas = require('./kt_Canvas');
 KT.Input = require('./kt_Input');
+KT.Sprite = require('./kt_Sprite');
 KT.Utils = require('./kt_Utils');
 
 module.exports = KT;
-},{"./kt_Canvas":3,"./kt_Input":4,"./kt_Utils":5}],2:[function(require,module,exports){
+},{"./kt_Canvas":3,"./kt_Input":4,"./kt_Sprite":5,"./kt_Utils":6}],2:[function(require,module,exports){
 var KT = require('./Kramtech');
 
 function Underworld(elDiv){
@@ -14,7 +15,15 @@ function Underworld(elDiv){
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
     KT.Input.listenTo(this.canvas);
+    
+    this.sprites = {};
+    
+    this.loadImages();
 }
+
+Underworld.prototype.loadImages = function(){
+    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 2, 1);
+};
 
 KT.Utils.addEvent(window, 'load', function(){
     var game = new Underworld(KT.Utils.get("divGame"));
@@ -47,8 +56,8 @@ module.exports = {
 var Utils = require('./kt_Utils');
 
 module.exports = {
-    _keys: [],
-    _vKeys: {
+    keys: [],
+    vKeys: {
         SHIFT: 16,
 		TAB: 9,
 		CTRL: 17,
@@ -72,30 +81,51 @@ module.exports = {
         Utils.addEvent(document, 'keyup', function(eEvent){ thus.onKeyUp(eEvent); } );
         
         for (var i=0;i<=9;i++){
-			this._vKeys['N' + i] = 48 + i;
-			this._vKeys['NK' + i] = 96 + i;
+			this.vKeys['N' + i] = 48 + i;
+			this.vKeys['NK' + i] = 96 + i;
 		}
 		
 		for (var i=65;i<=90;i++){
-			this._vKeys[String.fromCharCode(i)] = i;
+			this.vKeys[String.fromCharCode(i)] = i;
 		}
 		
 		for (var i=1;i<=12;i++){
-			this._vKeys['F' + i] = 111 + i;
+			this.vKeys['F' + i] = 111 + i;
 		}
     },
     
     onKeyDown: function(eEvent){
-        if (this._keys[eEvent.keyCode] == 2) return;
+        if (this.keys[eEvent.keyCode] == 2) return;
         
-        this._keys[eEvent.keyCode] = 1;
+        this.keys[eEvent.keyCode] = 1;
     },
     
     onKeyUp: function(eEvent){
-        this._keys[eEvent.keyCode] = 0;
+        this.keys[eEvent.keyCode] = 0;
     }
 };
-},{"./kt_Utils":5}],5:[function(require,module,exports){
+},{"./kt_Utils":6}],5:[function(require,module,exports){
+var Utils = require('./kt_Utils')
+
+module.exports = {
+    loadSprite: function(sFilename, iSprWidth, iSprHeight){
+        var img = new Image();
+        
+        img.src = sFilename;
+        img.sprWidth = iSprWidth;
+        img.sprHeight = iSprHeight;
+        img.ready = false;
+        
+        Utils.addEvent(img, "load", function(){
+           img.hNum = img.width / img.sprWidth; 
+           img.vNum = img.height / img.sprHeight;
+           img.ready = true;
+        });
+        
+        return img;
+    }
+};
+},{"./kt_Utils":6}],6:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){

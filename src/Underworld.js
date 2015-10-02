@@ -5,7 +5,15 @@ function Underworld(elDiv){
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
     KT.Input.listenTo(this.canvas);
+    
+    this.sprites = {};
+    
+    this.loadImages();
 }
+
+Underworld.prototype.loadImages = function(){
+    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 2, 1);
+};
 
 KT.Utils.addEvent(window, 'load', function(){
     var game = new Underworld(KT.Utils.get("divGame"));

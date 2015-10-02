@@ -1,8 +1,8 @@
 var Utils = require('./kt_Utils');
 
 module.exports = {
-    _keys: [],
-    _vKeys: {
+    keys: [],
+    vKeys: {
         SHIFT: 16,
 		TAB: 9,
 		CTRL: 17,
@@ -26,26 +26,26 @@ module.exports = {
         Utils.addEvent(document, 'keyup', function(eEvent){ thus.onKeyUp(eEvent); } );
         
         for (var i=0;i<=9;i++){
-			this._vKeys['N' + i] = 48 + i;
-			this._vKeys['NK' + i] = 96 + i;
+			this.vKeys['N' + i] = 48 + i;
+			this.vKeys['NK' + i] = 96 + i;
 		}
 		
 		for (var i=65;i<=90;i++){
-			this._vKeys[String.fromCharCode(i)] = i;
+			this.vKeys[String.fromCharCode(i)] = i;
 		}
 		
 		for (var i=1;i<=12;i++){
-			this._vKeys['F' + i] = 111 + i;
+			this.vKeys['F' + i] = 111 + i;
 		}
     },
     
     onKeyDown: function(eEvent){
-        if (this._keys[eEvent.keyCode] == 2) return;
+        if (this.keys[eEvent.keyCode] == 2) return;
         
-        this._keys[eEvent.keyCode] = 1;
+        this.keys[eEvent.keyCode] = 1;
     },
     
     onKeyUp: function(eEvent){
-        this._keys[eEvent.keyCode] = 0;
+        this.keys[eEvent.keyCode] = 0;
     }
 };
