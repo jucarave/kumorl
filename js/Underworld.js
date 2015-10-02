@@ -7,8 +7,28 @@ KT.Sprite = require('./kt_Sprite');
 KT.Utils = require('./kt_Utils');
 
 module.exports = KT;
-},{"./kt_Canvas":3,"./kt_Input":4,"./kt_Sprite":5,"./kt_Utils":6}],2:[function(require,module,exports){
+},{"./kt_Canvas":4,"./kt_Input":5,"./kt_Sprite":6,"./kt_Utils":7}],2:[function(require,module,exports){
+function MapManager(oGame, sMapName){
+    this.game = oGame;
+    this.mapName = sMapName;
+    
+    this.map = null;
+    
+    this.loadMap(sMapName);
+}
+
+module.exports = MapManager;
+
+MapManager.prototype.loadMap = function(sMapName){
+    this.map = new Array(64);
+    
+    for (var i=0;i<64;i++){
+        this.map[i] = new Uint8Array(64);
+    }
+};
+},{}],3:[function(require,module,exports){
 var KT = require('./Kramtech');
+var MapManager = require('./MapManager');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(640, 480, elDiv);
@@ -16,19 +36,75 @@ function Underworld(elDiv){
     
     KT.Input.listenTo(this.canvas);
     
+    this.maps = [];
+    this.map = null;
     this.sprites = {};
+    
+    this.fps = 1000 / 30;
+    this.lastFrame = 0;
     
     this.loadImages();
 }
 
 Underworld.prototype.loadImages = function(){
-    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 2, 1);
+    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32);
+};
+
+Underworld.prototype.checkReadyData = function(){
+    for (var i in this.sprites){
+        if (!this.sprites[i].ready){ return false; }
+    }
+    
+    return true;
+};
+
+Underworld.prototype.newGame = function(){
+    this.maps = [];
+    this.map = new MapManager(this, 'testMap');
+    
+    this.loopGame();
+};
+
+Underworld.prototype.loopGame = function(){
+    var nowDate = (new Date()).getTime();
+    var delta = nowDate - this.lastFrame;
+    
+    if (delta > this.fps){
+        this.lastFrame = nowDate - (delta % this.fps);
+        
+        this.update();
+    }
+    
+    var thus = this;
+    requestAnimFrame(function(){ thus.loopGame(); });
+};
+
+Underworld.prototype.update = function(){
 };
 
 KT.Utils.addEvent(window, 'load', function(){
     var game = new Underworld(KT.Utils.get("divGame"));
+    
+    var wait = function(){
+        if (game.checkReadyData()){
+            game.newGame();
+        }else{
+           setTimeout(wait, 1000 / 30);
+        }
+    }
+    
+    wait();
 });
-},{"./Kramtech":1}],3:[function(require,module,exports){
+
+var requestAnimFrame = (function(){
+  return  window.requestAnimationFrame       ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame    ||
+          function( callback ){
+            window.setTimeout(callback, 1000 / 30);
+          };
+})();
+},{"./Kramtech":1,"./MapManager":2}],4:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -50,9 +126,27 @@ module.exports = {
         ctx.height = elCanvas.height;
         
         return ctx;
+    },
+    
+    clearCanvas: function(oCtx){
+        oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
+    },
+    
+    drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg){
+        if (!oSprite.ready) return;
+        
+        iHSubImg = iHSubImg << 0;
+        iVSubImg = iVSubImg << 0;
+        
+        var iw = oSprite.sprWidth;
+        var ih = oSprite.sprHeight;
+        
+        oCtx.drawImage(oSprite, 
+                iHSubImg * iw, iVSubImg * ih, iw, ih,
+                x, y, iw, ih);
     }
 };
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 
 module.exports = {
@@ -104,7 +198,7 @@ module.exports = {
         this.keys[eEvent.keyCode] = 0;
     }
 };
-},{"./kt_Utils":6}],5:[function(require,module,exports){
+},{"./kt_Utils":7}],6:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 
 module.exports = {
@@ -125,7 +219,7 @@ module.exports = {
         return img;
     }
 };
-},{"./kt_Utils":6}],6:[function(require,module,exports){
+},{"./kt_Utils":7}],7:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -139,4 +233,4 @@ module.exports = {
         return document.getElementById(sId);
     }
 };
-},{}]},{},[2]);
+},{}]},{},[3]);
