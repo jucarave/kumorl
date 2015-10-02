@@ -1,10 +1,10 @@
 var KT = require('./Kramtech');
 
-function Underworld(div){
-    this.canvas = KT.Canvas.createCanvas(640, 480, div);
+function Underworld(elDiv){
+    this.canvas = KT.Canvas.createCanvas(640, 480, elDiv);
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
-    
+    KT.Input.listenTo(this.canvas);
 }
 
 KT.Utils.addEvent(window, 'load', function(){

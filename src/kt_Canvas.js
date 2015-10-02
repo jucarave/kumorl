@@ -1,18 +1,23 @@
 module.exports = {
-    createCanvas: function(width, height, container){
+    createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
         
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = iWidth;
+        canvas.height = iHeight;
         
-        if (container) container.appendChild(canvas);
+        if (elContainer) elContainer.appendChild(canvas);
         
         return canvas;
     },
     
-    get2DContext: function(canvas){
-        if (!canvas || !canvas.getContext) return null;
+    get2DContext: function(elCanvas){
+        if (!elCanvas || !elCanvas.getContext) return null;
         
-        return canvas.getContext("2d");
+        var ctx = elCanvas.getContext("2d");
+        
+        ctx.width = elCanvas.width;
+        ctx.height = elCanvas.height;
+        
+        return ctx;
     }
 };

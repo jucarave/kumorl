@@ -1,13 +1,13 @@
 module.exports = {
-    addEvent: function(obj, type, callback){
-        if (obj.addEventListener){
-            obj.addEventListener(type, callback, false);
-        }else if (obj.attachEvent){
-            obj.attachEvent("on" + type, callback);
+    addEvent: function(elObj, sType, fCallback){
+        if (elObj.addEventListener){
+            elObj.addEventListener(sType, fCallback, false);
+        }else if (elObj.attachEvent){
+            elObj.attachEvent("on" + sType, fCallback);
         }
     },
     
-    get: function(id){
-        return document.getElementById(id);
+    get: function(sId){
+        return document.getElementById(sId);
     }
 };
