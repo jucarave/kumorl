@@ -1,5 +1,5 @@
-var KT = require('./Kramtech');
-var MapManager = require('./MapManager');
+var KT = require('./kt_Kramtech');
+var MapManager = require('./g_MapManager');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(640, 480, elDiv);
@@ -51,6 +51,8 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.update = function(){
+    KT.Canvas.clearCanvas(this.ctx);
+    this.map.update();
 };
 
 KT.Utils.addEvent(window, 'load', function(){

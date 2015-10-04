@@ -1,17 +1,41 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var KT = {};
+var KT = require('./kt_Kramtech');
 
-KT.Canvas = require('./kt_Canvas');
-KT.Input = require('./kt_Input');
-KT.Sprite = require('./kt_Sprite');
-KT.Utils = require('./kt_Utils');
+function Actor(oMapManager, oSprite, oPosition){
+    this.mapManager = oMapManager;
+    this.sprite = oSprite;
+    this.position = oPosition;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 8;
+    
+}
 
-module.exports = KT;
-},{"./kt_Canvas":4,"./kt_Input":5,"./kt_Sprite":6,"./kt_Utils":7}],2:[function(require,module,exports){
+module.exports = Actor;
+
+Actor.prototype.moveTo = function(xTo, yTo){
+    this.position.sum(xTo, yTo);
+};
+
+Actor.prototype.draw = function(oCtx){
+    KT.Canvas.drawSprite(oCtx, this.sprite, this.position.x * 32, this.position.y * 32, this.imageIndex, 0);
+};
+
+Actor.prototype.update = function(){
+    this.imageIndex += this.imageSpeed;
+    if (this.imageIndex >= this.sprite.hNum){
+        this.imageIndex = 0;
+    }
+};
+},{"./kt_Kramtech":7}],2:[function(require,module,exports){
+var Player = require('./g_Player');
+var KT = require('./kt_Kramtech');
+
 function MapManager(oGame, sMapName){
     this.game = oGame;
     this.mapName = sMapName;
     
+    this.player = null;
     this.map = null;
     
     this.loadMap(sMapName);
@@ -23,12 +47,52 @@ MapManager.prototype.loadMap = function(sMapName){
     this.map = new Array(64);
     
     for (var i=0;i<64;i++){
-        this.map[i] = new Uint8Array(64);
+        this.map[i] = new Uint8ClampedArray(64);
+    }
+    
+    this.player = new Player(this, this.game.sprites.player, new KT.Vector2(0, 0));
+};
+
+MapManager.prototype.update = function(){
+    var ctx = this.game.ctx;
+    
+    this.player.update();
+    this.player.draw(ctx);
+};
+},{"./g_Player":3,"./kt_Kramtech":7}],3:[function(require,module,exports){
+var Actor = require('./g_Actor');
+var KT = require('./kt_Kramtech');
+
+function Player(oMapManager, oSprite, oPosition){
+    Actor.call(this, oMapManager, oSprite, oPosition);
+}
+
+Player.prototype = Object.create(Actor.prototype);
+
+module.exports = Player;
+
+Player.prototype.checkInput = function(){
+    var Input = KT.Input;
+    
+    var xTo = 0, yTo = 0;
+    if (Input.isKeyPressed(Input.vKeys.W)){ yTo = -1; }else
+    if (Input.isKeyPressed(Input.vKeys.S)){ yTo =  1; }else
+    if (Input.isKeyPressed(Input.vKeys.A)){ xTo = -1; }else
+    if (Input.isKeyPressed(Input.vKeys.D)){ xTo =  1; }
+    
+    if (xTo != 0 || yTo != 0){
+        this.moveTo(xTo, yTo);
     }
 };
-},{}],3:[function(require,module,exports){
-var KT = require('./Kramtech');
-var MapManager = require('./MapManager');
+
+Player.prototype.update = function(){
+    Actor.prototype.update.call(this);
+    
+    this.checkInput();
+};
+},{"./g_Actor":1,"./kt_Kramtech":7}],4:[function(require,module,exports){
+var KT = require('./kt_Kramtech');
+var MapManager = require('./g_MapManager');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(640, 480, elDiv);
@@ -80,6 +144,8 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.update = function(){
+    KT.Canvas.clearCanvas(this.ctx);
+    this.map.update();
 };
 
 KT.Utils.addEvent(window, 'load', function(){
@@ -104,7 +170,7 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
-},{"./Kramtech":1,"./MapManager":2}],4:[function(require,module,exports){
+},{"./g_MapManager":2,"./kt_Kramtech":7}],5:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -146,11 +212,11 @@ module.exports = {
                 x, y, iw, ih);
     }
 };
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 
 module.exports = {
-    keys: [],
+    keys: new Uint8ClampedArray(255),
     vKeys: {
         SHIFT: 16,
 		TAB: 9,
@@ -195,10 +261,46 @@ module.exports = {
     },
     
     onKeyUp: function(eEvent){
-        this.keys[eEvent.keyCode] = 0;
+    	var keyCode = eEvent.keyCode;
+        this.keys[keyCode] = 3;
+        
+        var thus = this;
+        setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+    },
+    
+    isKeyDown: function(iKeyCode){
+    	return (this.keys[iKeyCode] == 1);
+    },
+    
+    isKeyPressed: function(iKeyCode){
+    	if (this.keys[iKeyCode] == 1){
+    		this.keys[iKeyCode] = 2;
+    		return true;
+    	}
+    	
+    	return false;
+    },
+    
+    isKeyUp: function(iKeyCode){
+    	if (this.keys[iKeyCode] == 3){
+    		this.keys[iKeyCode] = 0;
+    		return true;
+    	}
+    	
+    	return false;
     }
 };
-},{"./kt_Utils":7}],6:[function(require,module,exports){
+},{"./kt_Utils":9}],7:[function(require,module,exports){
+var KT = {};
+
+KT.Canvas = require('./kt_Canvas');
+KT.Input = require('./kt_Input');
+KT.Sprite = require('./kt_Sprite');
+KT.Utils = require('./kt_Utils');
+KT.Vector2 = require('./kt_Vector2');
+
+module.exports = KT;
+},{"./kt_Canvas":5,"./kt_Input":6,"./kt_Sprite":8,"./kt_Utils":9,"./kt_Vector2":10}],8:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 
 module.exports = {
@@ -219,7 +321,7 @@ module.exports = {
         return img;
     }
 };
-},{"./kt_Utils":7}],7:[function(require,module,exports){
+},{"./kt_Utils":9}],9:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -233,4 +335,101 @@ module.exports = {
         return document.getElementById(sId);
     }
 };
-},{}]},{},[3]);
+},{}],10:[function(require,module,exports){
+function Vector2(x, y){
+	this.__ktv2 = true;
+	
+	this.x = x;
+	this.y = y;
+};
+
+module.exports = Vector2;
+
+Vector2.prototype.length = function(){
+	var length = Math.sqrt(this.x * this.x + this.y * this.y);
+	
+	return length;
+};
+
+Vector2.prototype.normalize = function(){
+	var length = this.length();
+	
+	this.x /= length;
+	this.y /= length;
+	
+	return this;
+};
+
+Vector2.prototype.dot = function(vector2){
+	if (!vector2.__ktv2) throw "Can only perform a dot product with a vector2";
+	
+	return this.x * vector2.x + this.y * vector2.y;
+};
+
+Vector2.prototype.invert = function(){
+	return this.multiply(-1);
+};
+
+Vector2.prototype.multiply = function(number){
+	this.x *= number;
+	this.y *= number;
+	
+	return this;
+};
+
+Vector2.prototype.sum = function(x, y){
+	this.x += x;
+	this.y += y;
+	
+	return this;
+};
+
+Vector2.prototype.add = function(vector2){
+	if (!vector2.__ktv2) throw "Can only add a vector2 to this vector";
+	
+	this.x += vector2.x;
+	this.y += vector2.y;
+	
+	return this;
+};
+
+Vector2.prototype.copy = function(vector2){
+	if (!vector2.__ktv2) throw "Can only copy a vector2 to this vector";
+	
+	this.x = vector2.x;
+	this.y = vector2.y;
+	
+	return this;
+};
+
+Vector2.prototype.set = function(x, y){
+	this.x = x;
+	this.y = y;
+	
+	return this;
+};
+
+Vector2.prototype.clone = function(){
+	return new Vector2(this.x, this.y);
+};
+
+Vector2.prototype.equals = function(vector2){
+	if (!vector2.__ktv2) throw "Can only copy a vector2 to this vector";
+	
+	return (this.x == vector2.x && this.y == vector2.y);
+};
+
+Vector2.vectorsDifference = function(vector2_a, vector2_b){
+	if (!vector2_a.__ktv2) throw "Can only create this vector using 2 vectors2";
+	if (!vector2_b.__ktv2) throw "Can only create this vector using 2 vectors2";
+	
+	return new Vector2(vector2_a.x - vector2_b.x, vector2_a.y - vector2_b.y);
+};
+
+Vector2.fromAngle = function(radian){
+	var x = Math.cos(radian);
+	var y = -Math.sin(radian);
+	
+	return new Vector2(x, y);
+};
+},{}]},{},[4]);

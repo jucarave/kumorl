@@ -1,7 +1,7 @@
 var Utils = require('./kt_Utils');
 
 module.exports = {
-    keys: [],
+    keys: new Uint8ClampedArray(255),
     vKeys: {
         SHIFT: 16,
 		TAB: 9,
@@ -46,6 +46,32 @@ module.exports = {
     },
     
     onKeyUp: function(eEvent){
-        this.keys[eEvent.keyCode] = 0;
+    	var keyCode = eEvent.keyCode;
+        this.keys[keyCode] = 3;
+        
+        var thus = this;
+        setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+    },
+    
+    isKeyDown: function(iKeyCode){
+    	return (this.keys[iKeyCode] == 1);
+    },
+    
+    isKeyPressed: function(iKeyCode){
+    	if (this.keys[iKeyCode] == 1){
+    		this.keys[iKeyCode] = 2;
+    		return true;
+    	}
+    	
+    	return false;
+    },
+    
+    isKeyUp: function(iKeyCode){
+    	if (this.keys[iKeyCode] == 3){
+    		this.keys[iKeyCode] = 0;
+    		return true;
+    	}
+    	
+    	return false;
     }
 };
