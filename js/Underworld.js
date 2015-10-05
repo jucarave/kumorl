@@ -4,28 +4,77 @@ var KT = require('./kt_Kramtech');
 function Actor(oMapManager, oSprite, oPosition){
     this.mapManager = oMapManager;
     this.sprite = oSprite;
+    
     this.position = oPosition;
+    this.position.z = 0;
+    this.scale = new KT.Vector2(1, 1);
+    
+    this.target = new KT.Vector2(-1, 0);
+    this.moving = false;
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
+    this.drawParams = {
+        scale: this.scale
+    };
 }
 
 module.exports = Actor;
 
 Actor.prototype.moveTo = function(xTo, yTo){
-    this.position.sum(xTo, yTo);
+    if (this.moving) return;
+    
+    if (xTo != 0) this.scale.x = xTo;
+    
+    this.target.set(this.position.x + xTo, this.position.y + yTo);
+    this.moving = true;
 };
 
 Actor.prototype.draw = function(oCtx){
-    KT.Canvas.drawSprite(oCtx, this.sprite, this.position.x * 32, this.position.y * 32, this.imageIndex, 0);
+    KT.Canvas.drawSprite(oCtx, this.sprite, this.position.x * 32, (this.position.y * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
+};
+
+Actor.prototype.finishMovement = function(){
+    this.moving = false;
+    this.position.copy(this.target);
+    this.position.z = 0;
+    this.target.set(-1, 0);
+};
+
+Actor.prototype.updateMovement = function(){
+    if (!this.moving) return;
+    
+    if ((this.target.x != this.position.x && Math.abs(this.target.x - this.position.x) <= 0.5) || 
+        (this.target.y != this.position.y && Math.abs(this.target.y - this.position.y) <= 0.5))
+        this.position.z -= 0.5;
+    else
+        this.position.z += 0.5;
+    
+    if (this.target.x > this.position.x){
+        this.position.x += 0.2;
+        if (this.target.x <= this.position.x){ this.finishMovement(); }
+    }else if (this.target.x < this.position.x){
+        this.position.x -= 0.2;
+        if (this.target.x >= this.position.x){ this.finishMovement(); }
+    }else if (this.target.y > this.position.y){
+        this.position.y += 0.2;
+        if (this.target.y <= this.position.y){ this.finishMovement(); }
+    }else if (this.target.y < this.position.y){
+        this.position.y -= 0.2;
+        if (this.target.y >= this.position.y){ this.finishMovement(); }
+    }
 };
 
 Actor.prototype.update = function(){
-    this.imageIndex += this.imageSpeed;
-    if (this.imageIndex >= this.sprite.hNum){
-        this.imageIndex = 0;
+    if (!this.moving){
+        this.imageIndex += this.imageSpeed;
+        if (this.imageIndex >= this.sprite.hNum){
+            this.imageIndex = 0;
+        }
     }
+    
+    this.updateMovement();
 };
 },{"./kt_Kramtech":7}],2:[function(require,module,exports){
 var Player = require('./g_Player');
@@ -75,10 +124,10 @@ Player.prototype.checkInput = function(){
     var Input = KT.Input;
     
     var xTo = 0, yTo = 0;
-    if (Input.isKeyPressed(Input.vKeys.W)){ yTo = -1; }else
-    if (Input.isKeyPressed(Input.vKeys.S)){ yTo =  1; }else
-    if (Input.isKeyPressed(Input.vKeys.A)){ xTo = -1; }else
-    if (Input.isKeyPressed(Input.vKeys.D)){ xTo =  1; }
+    if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
+    if (Input.isKeyDown(Input.vKeys.S)){ yTo =  1; }else
+    if (Input.isKeyDown(Input.vKeys.A)){ xTo = -1; }else
+    if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
         this.moveTo(xTo, yTo);
@@ -111,7 +160,7 @@ function Underworld(elDiv){
 }
 
 Underworld.prototype.loadImages = function(){
-    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32);
+    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
 };
 
 Underworld.prototype.checkReadyData = function(){
@@ -198,8 +247,9 @@ module.exports = {
         oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
     },
     
-    drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg){
+    drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg, params){
         if (!oSprite.ready) return;
+        if (!params) params = window.empt;
         
         iHSubImg = iHSubImg << 0;
         iVSubImg = iVSubImg << 0;
@@ -207,9 +257,19 @@ module.exports = {
         var iw = oSprite.sprWidth;
         var ih = oSprite.sprHeight;
         
+        var ox = oSprite.origin.x;
+        var oy = oSprite.origin.y;
+        
+        oCtx.save();
+        
+        oCtx.translate(x + ox, y + oy);
+        if (params.scale) oCtx.scale(params.scale.x, params.scale.y);
+        
         oCtx.drawImage(oSprite, 
                 iHSubImg * iw, iVSubImg * ih, iw, ih,
-                x, y, iw, ih);
+                -ox, -oy, iw, ih);
+                
+        oCtx.restore();
     }
 };
 },{}],6:[function(require,module,exports){
@@ -231,7 +291,11 @@ module.exports = {
 		END: 35,
 		START: 36,
 		PAGEUP: 33,
-		PAGEDOWN: 34
+		PAGEDOWN: 34,
+		LEFT: 37,
+		UP: 38,
+		RIGHT: 39,
+		DOWN: 40
     },
     
     listenTo: function(elCanvas){
@@ -293,6 +357,8 @@ module.exports = {
 },{"./kt_Utils":9}],7:[function(require,module,exports){
 var KT = {};
 
+window.empt = {};
+
 KT.Canvas = require('./kt_Canvas');
 KT.Input = require('./kt_Input');
 KT.Sprite = require('./kt_Sprite');
@@ -302,15 +368,19 @@ KT.Vector2 = require('./kt_Vector2');
 module.exports = KT;
 },{"./kt_Canvas":5,"./kt_Input":6,"./kt_Sprite":8,"./kt_Utils":9,"./kt_Vector2":10}],8:[function(require,module,exports){
 var Utils = require('./kt_Utils')
+var Vector2 = require('./kt_Vector2')
 
 module.exports = {
-    loadSprite: function(sFilename, iSprWidth, iSprHeight){
+    loadSprite: function(sFilename, iSprWidth, iSprHeight, oParams){
+        if (!oParams) oParams = window.empt;
         var img = new Image();
         
         img.src = sFilename;
         img.sprWidth = iSprWidth;
         img.sprHeight = iSprHeight;
         img.ready = false;
+        
+        img.origin = (oParams.origin)? oParams.origin : new Vector2(0, 0);
         
         Utils.addEvent(img, "load", function(){
            img.hNum = img.width / img.sprWidth; 
@@ -321,7 +391,7 @@ module.exports = {
         return img;
     }
 };
-},{"./kt_Utils":9}],9:[function(require,module,exports){
+},{"./kt_Utils":9,"./kt_Vector2":10}],9:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){

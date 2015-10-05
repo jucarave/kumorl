@@ -16,7 +16,11 @@ module.exports = {
 		END: 35,
 		START: 36,
 		PAGEUP: 33,
-		PAGEDOWN: 34
+		PAGEDOWN: 34,
+		LEFT: 37,
+		UP: 38,
+		RIGHT: 39,
+		DOWN: 40
     },
     
     listenTo: function(elCanvas){

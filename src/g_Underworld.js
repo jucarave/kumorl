@@ -18,7 +18,7 @@ function Underworld(elDiv){
 }
 
 Underworld.prototype.loadImages = function(){
-    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32);
+    this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
 };
 
 Underworld.prototype.checkReadyData = function(){

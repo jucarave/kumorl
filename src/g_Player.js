@@ -13,10 +13,10 @@ Player.prototype.checkInput = function(){
     var Input = KT.Input;
     
     var xTo = 0, yTo = 0;
-    if (Input.isKeyPressed(Input.vKeys.W)){ yTo = -1; }else
-    if (Input.isKeyPressed(Input.vKeys.S)){ yTo =  1; }else
-    if (Input.isKeyPressed(Input.vKeys.A)){ xTo = -1; }else
-    if (Input.isKeyPressed(Input.vKeys.D)){ xTo =  1; }
+    if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
+    if (Input.isKeyDown(Input.vKeys.S)){ yTo =  1; }else
+    if (Input.isKeyDown(Input.vKeys.A)){ xTo = -1; }else
+    if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
         this.moveTo(xTo, yTo);
