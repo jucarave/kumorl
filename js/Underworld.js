@@ -105,16 +105,37 @@ MapManager.prototype.loadMap = function(sMapName){
             thus.map[i] = new Uint8ClampedArray(map.mapData[i]);
         }
         
-        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(0, 0));
+        thus.game.loadTileset(map.tileset);
+        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(2, 2));
         
         thus.ready = true;
     });
+};
+
+MapManager.prototype.drawMap = function(){
+    var ctx = this.game.ctx;
+    var drawSprite = KT.Canvas.drawSprite;
+    
+    var walls = this.game.tileset[0].sprite;
+    var floors = this.game.tileset[1].sprite;
+    
+    for (var y=0;y<64;y++){
+        for (var x=0;x<64;x++){
+            var t = this.map[y][x];
+            if (t == 0) continue;
+            
+            if (t == 1){ drawSprite(ctx, walls, x * 32, y * 32, 0, 0); }else
+            if (t == 33){ drawSprite(ctx, floors, x * 32, y * 32, 0, 0); }
+        }
+    }
 };
 
 MapManager.prototype.update = function(){
     var ctx = this.game.ctx;
     
     this.player.update();
+    
+    this.drawMap();
     this.player.draw(ctx);
 };
 },{"./g_Player":3,"./kt_Kramtech":7}],3:[function(require,module,exports){
@@ -153,7 +174,7 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 
 function Underworld(elDiv){
-    this.canvas = KT.Canvas.createCanvas(640, 480, elDiv);
+    this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
     KT.Input.listenTo(this.canvas);
@@ -161,12 +182,42 @@ function Underworld(elDiv){
     this.maps = [];
     this.map = null;
     this.sprites = {};
+    this.tileset = [];
     
     this.fps = 1000 / 30;
     this.lastFrame = 0;
     
     this.loadImages();
 }
+
+Underworld.prototype.loadTileset = function(tileset){
+    var jlen = tileset.length;
+    for (var i=0;i<this.tileset.length;i++){
+        var found = false;
+        for (var j=0,tile;j<jlen;j++){
+            tile = tileset[j];
+            if (this.tileset[i].name == tile.name){
+                tileset.splice(j, 1);
+                found = true;
+                j = jlen;
+            }
+        }
+        
+        if (!found){
+            this.tileset.splice(i, 1);
+        }
+    }
+    
+    jlen = tileset.length;
+    for (j=0;j<jlen;j++){
+        tile = tileset[j];
+        this.tileset.push({
+            name: tile.name,
+            sprite: KT.Sprite.loadSprite('img/' + tile.path, 32, 32),
+            index: tile.index
+        });
+    }
+};
 
 Underworld.prototype.loadImages = function(){
     this.sprites.player = KT.Sprite.loadSprite('img/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
@@ -204,7 +255,7 @@ Underworld.prototype.loopGame = function(){
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
-    KT.Canvas.clearCanvas(this.ctx);
+    KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
 };
 
@@ -254,8 +305,16 @@ module.exports = {
         return ctx;
     },
     
-    clearCanvas: function(oCtx){
-        oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
+    clearCanvas: function(oCtx, sColor){
+        if (sColor){
+            var oldC = oCtx.fillStyle;
+            
+            oCtx.fillStyle = sColor;
+            oCtx.fillRect(0, 0, oCtx.width, oCtx.height);
+            oCtx.fillStyle = oldC;
+        }else{
+            oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
+        }
     },
     
     drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg, params){

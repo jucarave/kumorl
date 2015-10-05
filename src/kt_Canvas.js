@@ -21,8 +21,16 @@ module.exports = {
         return ctx;
     },
     
-    clearCanvas: function(oCtx){
-        oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
+    clearCanvas: function(oCtx, sColor){
+        if (sColor){
+            var oldC = oCtx.fillStyle;
+            
+            oCtx.fillStyle = sColor;
+            oCtx.fillRect(0, 0, oCtx.width, oCtx.height);
+            oCtx.fillStyle = oldC;
+        }else{
+            oCtx.clearRect(0, 0, oCtx.width, oCtx.height);
+        }
     },
     
     drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg, params){
