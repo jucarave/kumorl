@@ -51,6 +51,8 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.update = function(){
+    if (!this.map || !this.map.ready) return;
+    
     KT.Canvas.clearCanvas(this.ctx);
     this.map.update();
 };

@@ -87,19 +87,28 @@ function MapManager(oGame, sMapName){
     this.player = null;
     this.map = null;
     
+    this.ready = false;
     this.loadMap(sMapName);
 }
 
 module.exports = MapManager;
 
 MapManager.prototype.loadMap = function(sMapName){
-    this.map = new Array(64);
+    var thus = this;
     
-    for (var i=0;i<64;i++){
-        this.map[i] = new Uint8ClampedArray(64);
-    }
+    KT.Utils.getJson('services/loadMap.php?mapName=' + this.mapName, function(error, map){
+        if (error) throw "Fatal error during the execution of the app.";
+        
+        thus.map = new Array(64);
     
-    this.player = new Player(this, this.game.sprites.player, new KT.Vector2(0, 0));
+        for (var i=0;i<64;i++){
+            thus.map[i] = new Uint8ClampedArray(map.mapData[i]);
+        }
+        
+        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(0, 0));
+        
+        thus.ready = true;
+    });
 };
 
 MapManager.prototype.update = function(){
@@ -193,6 +202,8 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.update = function(){
+    if (!this.map || !this.map.ready) return;
+    
     KT.Canvas.clearCanvas(this.ctx);
     this.map.update();
 };
@@ -403,6 +414,41 @@ module.exports = {
     
     get: function(sId){
         return document.getElementById(sId);
+    },
+    
+    getHttp: function(){
+        if (window.XMLHttpRequest){
+			return new XMLHttpRequest();
+		}else if (window.ActiveXObject){
+			return new window.ActiveXObject("Microsoft.XMLHTTP");
+		}
+		
+		return null;
+    },
+    
+    getJson: function(fileURL, callback){
+		var http = this.getHttp();
+		http.open('GET', fileURL, true);
+		http.onreadystatechange = function() {
+	  		if (http.readyState == 4) {
+	  		    if (http.status == 200){
+    				if (callback){
+    				    var json = JSON.parse(http.responseText);
+    					callback(null, json);
+    				}
+	  		    }else{
+	  		        try{
+	  		            var error = JSON.parse(http.responseText);
+	  		            console.error(error.message);
+	  		            if (callback) callback(error);
+	  		        }catch (e){
+	  		            console.error(e);
+	  		            if (callback) callback(e);
+	  		        }
+	  		    }
+			}
+		};
+		http.send();
     }
 };
 },{}],10:[function(require,module,exports){

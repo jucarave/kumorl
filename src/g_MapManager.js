@@ -8,19 +8,28 @@ function MapManager(oGame, sMapName){
     this.player = null;
     this.map = null;
     
+    this.ready = false;
     this.loadMap(sMapName);
 }
 
 module.exports = MapManager;
 
 MapManager.prototype.loadMap = function(sMapName){
-    this.map = new Array(64);
+    var thus = this;
     
-    for (var i=0;i<64;i++){
-        this.map[i] = new Uint8ClampedArray(64);
-    }
+    KT.Utils.getJson('services/loadMap.php?mapName=' + this.mapName, function(error, map){
+        if (error) throw "Fatal error during the execution of the app.";
+        
+        thus.map = new Array(64);
     
-    this.player = new Player(this, this.game.sprites.player, new KT.Vector2(0, 0));
+        for (var i=0;i<64;i++){
+            thus.map[i] = new Uint8ClampedArray(map.mapData[i]);
+        }
+        
+        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(0, 0));
+        
+        thus.ready = true;
+    });
 };
 
 MapManager.prototype.update = function(){
