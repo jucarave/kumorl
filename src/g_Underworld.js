@@ -42,7 +42,8 @@ Underworld.prototype.loadTileset = function(tileset){
         this.tileset.push({
             name: tile.name,
             sprite: KT.Sprite.loadSprite('img/' + tile.path, 32, 32),
-            index: tile.index
+            index: tile.index,
+            solid: tile.solid
         });
     }
 };

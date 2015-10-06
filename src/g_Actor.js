@@ -23,6 +23,7 @@ module.exports = Actor;
 
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return;
+    if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return;
     
     if (xTo != 0) this.scale.x = xTo;
     
@@ -30,8 +31,8 @@ Actor.prototype.moveTo = function(xTo, yTo){
     this.moving = true;
 };
 
-Actor.prototype.draw = function(oCtx){
-    KT.Canvas.drawSprite(oCtx, this.sprite, this.position.x * 32, (this.position.y * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
+Actor.prototype.draw = function(oCtx, view){
+    KT.Canvas.drawSprite(oCtx, this.sprite, (this.position.x - view.x) * 32, ((this.position.y - view.y) * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
 };
 
 Actor.prototype.finishMovement = function(){

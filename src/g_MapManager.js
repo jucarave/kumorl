@@ -9,6 +9,9 @@ function MapManager(oGame, sMapName){
     this.map = null;
     
     this.tilesLoc = [];
+    this.view = new KT.Vector2(0, 0);
+    this.view.width = 27;
+    this.view.height = 15;
     
     this.ready = false;
     this.loadMap(sMapName);
@@ -55,18 +58,42 @@ MapManager.prototype.loadMap = function(sMapName){
     });
 };
 
+MapManager.prototype.isSolid = function(x, y){
+    var t = this.map[y][x];
+    if (t == 0) return true;
+    
+    var loc = this.tilesLoc[t];
+    return this.game.tileset[loc.sprIndex].solid;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
     
-    for (var y=0;y<64;y++){
-        for (var x=0;x<64;x++){
+    var m = Math;
+    
+    this.view.x = m.floor(this.player.position.x - (this.view.width / 2));
+    this.view.y = m.floor(this.player.position.y - (this.view.height / 2));
+    
+    this.view.x = m.max(0, m.min(64, this.view.x));
+    this.view.y = m.max(0, m.min(64, this.view.y));
+    
+    var xx = this.view.x;
+    var yy = this.view.y;
+    
+    var ww = xx + this.view.width;
+    var hh = yy + this.view.height;
+    ww = m.max(0, m.min(64, ww));
+    hh = m.max(0, m.min(64, hh));
+    
+    for (var y=yy;y<hh;y++){
+        for (var x=xx;x<ww;x++){
             var t = this.map[y][x];
             if (t == 0) continue;
             
             var loc = this.tilesLoc[t];
             var sprite = this.game.tileset[loc.sprIndex].sprite;
-            drawSprite(ctx, sprite, x * 32, y * 32, loc.x, loc.y);
+            drawSprite(ctx, sprite, (x - xx) * 32, (y - yy) * 32, loc.x, loc.y);
         }
     }
 };
@@ -77,5 +104,5 @@ MapManager.prototype.update = function(){
     this.player.update();
     
     this.drawMap();
-    this.player.draw(ctx);
+    this.player.draw(ctx, this.view);
 };

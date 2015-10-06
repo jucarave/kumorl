@@ -4,6 +4,7 @@
             "name": "DungeonWall",
             "path": "tileset/sprDungeonWall.png",
             "index": [1, 32],
+            "solid": true,
             "hNum": 4,
             "vNum": 2
         },
@@ -11,6 +12,7 @@
             "name": "DungeonFloor",
             "path": "tileset/sprDungeonFloor.png",
             "index": [33, 64],
+            "solid": false,
             "hNum": 2,
             "vNum": 2
         }
