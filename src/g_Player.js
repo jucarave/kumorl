@@ -9,6 +9,10 @@ Player.prototype = Object.create(Actor.prototype);
 
 module.exports = Player;
 
+Player.prototype.doAct = function(){
+    this.mapManager.playerAction = true;
+};
+
 Player.prototype.checkInput = function(){
     var Input = KT.Input;
     
@@ -19,7 +23,8 @@ Player.prototype.checkInput = function(){
     if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
-        this.moveTo(xTo, yTo);
+        if (this.moveTo(xTo, yTo))
+            this.doAct();
     }
 };
 

@@ -1,4 +1,5 @@
 var Player = require('./g_Player');
+var Enemy = require('./g_Enemy');
 var KT = require('./kt_Kramtech');
 
 function MapManager(oGame, sMapName){
@@ -7,6 +8,9 @@ function MapManager(oGame, sMapName){
     
     this.player = null;
     this.map = null;
+    this.enemies = [];
+    
+    this.playerAction = false;
     
     this.tilesLoc = [];
     this.view = new KT.Vector2(0, 0);
@@ -52,7 +56,10 @@ MapManager.prototype.loadMap = function(sMapName){
         
         thus.game.loadTileset(map.tileset);
         thus.parseTilesLocation(map.tileset);
-        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(2, 2));
+        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3));
+        
+        thus.enemies = [];
+        thus.enemies.push(new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4)));
         
         thus.ready = true;
     });
@@ -102,4 +109,11 @@ MapManager.prototype.update = function(){
     
     this.drawMap();
     this.player.draw(ctx, this.view);
+    
+    for (var i=0,len=this.enemies.length;i<len;i++){
+        this.enemies[i].update();
+        this.enemies[i].draw(ctx, this.view);
+    }
+    
+    this.playerAction = false;
 };

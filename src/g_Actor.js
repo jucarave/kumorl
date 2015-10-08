@@ -22,13 +22,14 @@ function Actor(oMapManager, oSprite, oPosition){
 module.exports = Actor;
 
 Actor.prototype.moveTo = function(xTo, yTo){
-    if (this.moving) return;
-    if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return;
+    if (this.moving) return false;
+    if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
     this.target.set(this.position.x + xTo, this.position.y + yTo);
     this.moving = true;
+    return true;
 };
 
 Actor.prototype.draw = function(oCtx, view){
