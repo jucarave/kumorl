@@ -72,14 +72,11 @@ MapManager.prototype.drawMap = function(){
     
     var m = Math;
     
-    this.view.x = m.floor(this.player.position.x - (this.view.width / 2));
-    this.view.y = m.floor(this.player.position.y - (this.view.height / 2));
+    this.view.x = m.max(0, m.min(64, (this.player.position.x - (this.view.width / 2)) ));
+    this.view.y = m.max(0, m.min(64, (this.player.position.y - (this.view.height / 2)) ));
     
-    this.view.x = m.max(0, m.min(64, this.view.x));
-    this.view.y = m.max(0, m.min(64, this.view.y));
-    
-    var xx = this.view.x;
-    var yy = this.view.y;
+    var xx = m.floor(this.view.x);
+    var yy = m.floor(this.view.y);
     
     var ww = xx + this.view.width;
     var hh = yy + this.view.height;
@@ -93,7 +90,7 @@ MapManager.prototype.drawMap = function(){
             
             var loc = this.tilesLoc[t];
             var sprite = this.game.tileset[loc.sprIndex].sprite;
-            drawSprite(ctx, sprite, (x - xx) * 32, (y - yy) * 32, loc.x, loc.y);
+            drawSprite(ctx, sprite, (x - this.view.x) * 32, (y - this.view.y) * 32, loc.x, loc.y);
         }
     }
 };
