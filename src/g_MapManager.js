@@ -73,6 +73,32 @@ MapManager.prototype.isSolid = function(x, y){
     return this.game.tileset[loc.sprIndex].solid;
 };
 
+MapManager.prototype.isEnemyCollision = function(x, y){
+    for (var i=0,len=this.enemies.length;i<len;i++){
+        var e = this.enemies[i].position;
+        
+        if (e.x >= x + 1) continue;
+        if (e.x + 1 <= x) continue;
+        if (e.y >= y + 1) continue;
+        if (e.y + 1 <= y) continue;
+        
+        return true;
+    }
+    
+    return false;
+};
+
+MapManager.prototype.isPlayerCollision = function(x, y){
+    var p = this.player.position;
+    
+    if (p.x >= x + 1) return false;
+    if (p.x + 1 <= x) return false;
+    if (p.y >= y + 1) return false;
+    if (p.y + 1 <= y) return false;
+    
+    return true;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;

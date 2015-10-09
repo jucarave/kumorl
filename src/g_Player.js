@@ -3,6 +3,8 @@ var KT = require('./kt_Kramtech');
 
 function Player(oMapManager, oSprite, oPosition){
     Actor.call(this, oMapManager, oSprite, oPosition);
+    
+    this._player = true;
 }
 
 Player.prototype = Object.create(Actor.prototype);
@@ -29,7 +31,7 @@ Player.prototype.checkInput = function(){
 };
 
 Player.prototype.update = function(){
-    Actor.prototype.update.call(this);
-    
     this.checkInput();
+    
+    Actor.prototype.update.call(this);
 };

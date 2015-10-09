@@ -24,11 +24,14 @@ module.exports = Actor;
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
     if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isEnemyCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (!this._player && this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
     this.target.set(this.position.x + xTo, this.position.y + yTo);
     this.moving = true;
+    
     return true;
 };
 

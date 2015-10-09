@@ -25,11 +25,14 @@ module.exports = Actor;
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
     if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isEnemyCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (!this._player && this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
     this.target.set(this.position.x + xTo, this.position.y + yTo);
     this.moving = true;
+    
     return true;
 };
 
@@ -91,9 +94,14 @@ Enemy.prototype = Object.create(Actor.prototype);
 module.exports = Enemy;
 
 Enemy.prototype.update = function(){
-    Actor.prototype.update.call(this);
+    if (!this.mapManager.playerAction){
+        Actor.prototype.update.call(this);
+        return;
+    }
     
-    if (!this.mapManager.playerAction) return;
+    this.moveTo(-1, 0);
+    
+    Actor.prototype.update.call(this);
 };
 },{"./g_Actor":1,"./kt_Kramtech":8}],3:[function(require,module,exports){
 var Player = require('./g_Player');
@@ -171,6 +179,32 @@ MapManager.prototype.isSolid = function(x, y){
     return this.game.tileset[loc.sprIndex].solid;
 };
 
+MapManager.prototype.isEnemyCollision = function(x, y){
+    for (var i=0,len=this.enemies.length;i<len;i++){
+        var e = this.enemies[i].position;
+        
+        if (e.x >= x + 1) continue;
+        if (e.x + 1 <= x) continue;
+        if (e.y >= y + 1) continue;
+        if (e.y + 1 <= y) continue;
+        
+        return true;
+    }
+    
+    return false;
+};
+
+MapManager.prototype.isPlayerCollision = function(x, y){
+    var p = this.player.position;
+    
+    if (p.x >= x + 1) return false;
+    if (p.x + 1 <= x) return false;
+    if (p.y >= y + 1) return false;
+    if (p.y + 1 <= y) return false;
+    
+    return true;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -221,6 +255,8 @@ var KT = require('./kt_Kramtech');
 
 function Player(oMapManager, oSprite, oPosition){
     Actor.call(this, oMapManager, oSprite, oPosition);
+    
+    this._player = true;
 }
 
 Player.prototype = Object.create(Actor.prototype);
@@ -247,9 +283,9 @@ Player.prototype.checkInput = function(){
 };
 
 Player.prototype.update = function(){
-    Actor.prototype.update.call(this);
-    
     this.checkInput();
+    
+    Actor.prototype.update.call(this);
 };
 },{"./g_Actor":1,"./kt_Kramtech":8}],5:[function(require,module,exports){
 var KT = require('./kt_Kramtech');

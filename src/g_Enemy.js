@@ -10,7 +10,12 @@ Enemy.prototype = Object.create(Actor.prototype);
 module.exports = Enemy;
 
 Enemy.prototype.update = function(){
-    Actor.prototype.update.call(this);
+    if (!this.mapManager.playerAction){
+        Actor.prototype.update.call(this);
+        return;
+    }
     
-    if (!this.mapManager.playerAction) return;
+    this.moveTo(-1, 0);
+    
+    Actor.prototype.update.call(this);
 };
