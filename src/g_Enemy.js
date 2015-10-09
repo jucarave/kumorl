@@ -9,13 +9,25 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
+Enemy.prototype.randomMovement = function(){
+    var m = Math;
+    var xTo = 0, yTo = 0;
+    
+    xTo = m.floor(m.random() * 3) - 1;
+    if (xTo == 0){ yTo = m.floor(m.random() * 3) - 1; }
+    
+    if (xTo != 0 || yTo != 0){
+        this.moveTo(xTo, yTo);
+    }
+};
+
 Enemy.prototype.update = function(){
     if (!this.mapManager.playerAction){
         Actor.prototype.update.call(this);
         return;
     }
     
-    this.moveTo(-1, 0);
+    this.randomMovement();
     
     Actor.prototype.update.call(this);
 };

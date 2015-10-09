@@ -26,7 +26,7 @@ Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
     if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
     if (this.mapManager.isEnemyCollision(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (!this._player && this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
@@ -93,13 +93,25 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
+Enemy.prototype.randomMovement = function(){
+    var m = Math;
+    var xTo = 0, yTo = 0;
+    
+    xTo = m.floor(m.random() * 3) - 1;
+    if (xTo == 0){ yTo = m.floor(m.random() * 3) - 1; }
+    
+    if (xTo != 0 || yTo != 0){
+        this.moveTo(xTo, yTo);
+    }
+};
+
 Enemy.prototype.update = function(){
     if (!this.mapManager.playerAction){
         Actor.prototype.update.call(this);
         return;
     }
     
-    this.moveTo(-1, 0);
+    this.randomMovement();
     
     Actor.prototype.update.call(this);
 };
@@ -269,6 +281,8 @@ Player.prototype.doAct = function(){
 
 Player.prototype.checkInput = function(){
     var Input = KT.Input;
+    
+    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
     
     var xTo = 0, yTo = 0;
     if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else

@@ -18,6 +18,8 @@ Player.prototype.doAct = function(){
 Player.prototype.checkInput = function(){
     var Input = KT.Input;
     
+    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
+    
     var xTo = 0, yTo = 0;
     if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
     if (Input.isKeyDown(Input.vKeys.S)){ yTo =  1; }else
