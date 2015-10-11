@@ -36,7 +36,13 @@ Actor.prototype.moveTo = function(xTo, yTo){
 };
 
 Actor.prototype.draw = function(oCtx, view){
-    KT.Canvas.drawSprite(oCtx, this.sprite, (this.position.x - view.x) * 32, ((this.position.y - view.y) * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
+    var vx = this.position.x - view.x;
+    var vy = this.position.y - view.y;
+    
+    if (vx + 1 < 0 || vy + 1 < 0) return;
+    if (vx > view.width || vy > view.height) return;
+    
+    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
 };
 
 Actor.prototype.finishMovement = function(){
