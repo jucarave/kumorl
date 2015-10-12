@@ -51,6 +51,8 @@ Underworld.prototype.loadTileset = function(tileset){
 Underworld.prototype.loadImages = function(){
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: new KT.Vector2(16, 16)});
+    
+    this.sprites.at_slice = KT.Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
 };
 
 Underworld.prototype.checkReadyData = function(){

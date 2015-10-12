@@ -14,6 +14,8 @@ function Actor(oMapManager, oSprite, oPosition){
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
+    this.destroyed = false;
+    
     this.drawParams = {
         scale: this.scale
     };
@@ -36,6 +38,8 @@ Actor.prototype.moveTo = function(xTo, yTo){
 };
 
 Actor.prototype.draw = function(oCtx, view){
+    if (this.destroyed) return;
+    
     var vx = this.position.x - view.x;
     var vy = this.position.y - view.y;
     
@@ -74,6 +78,10 @@ Actor.prototype.updateMovement = function(){
         this.position.y -= 0.2;
         if (this.target.y >= this.position.y){ this.finishMovement(); }
     }
+};
+
+Actor.prototype.destroy = function(){
+    this.destroyed = true;
 };
 
 Actor.prototype.update = function(){

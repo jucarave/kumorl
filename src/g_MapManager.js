@@ -8,6 +8,8 @@ function MapManager(oGame, sMapName){
     
     this.player = null;
     this.map = null;
+    
+    this.instances = [];
     this.enemies = [];
     
     this.playerAction = false;
@@ -48,6 +50,7 @@ MapManager.prototype.loadMap = function(sMapName){
     KT.Utils.getJson('services/loadMap.php?mapName=' + this.mapName, function(error, map){
         if (error) throw "Fatal error during the execution of the app.";
         
+        thus.instances = [];
         thus.map = new Array(64);
     
         for (var i=0;i<64;i++){
@@ -58,8 +61,11 @@ MapManager.prototype.loadMap = function(sMapName){
         thus.parseTilesLocation(map.tileset);
         thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3));
         
+        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4));
+        
         thus.enemies = [];
-        thus.enemies.push(new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4)));
+        thus.enemies.push(e);
+        thus.instances.push(e);
         
         thus.ready = true;
     });
@@ -99,6 +105,18 @@ MapManager.prototype.isPlayerCollision = function(x, y){
     return true;
 };
 
+MapManager.prototype.getEnemyAt = function(x, y){
+    for (var i=0,len=this.enemies.length;i<len;i++){
+        var ep = this.enemies[i].position;
+        
+        if (ep.equals(x, y)){
+            return this.enemies[i];
+        }
+    }
+    
+    return null;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -136,9 +154,17 @@ MapManager.prototype.update = function(){
     this.drawMap();
     this.player.draw(ctx, this.view);
     
-    for (var i=0,len=this.enemies.length;i<len;i++){
-        this.enemies[i].update();
-        this.enemies[i].draw(ctx, this.view);
+    for (var i=0,len=this.instances.length;i<len;i++){
+        var ins = this.instances[i];
+        if (ins.destroyed){
+            this.instances.splice(i, 1);
+            len = this.instances.length;
+            i--;
+            continue;
+        }
+        
+        this.instances[i].update();
+        this.instances[i].draw(ctx, this.view);
     }
     
     this.playerAction = false;

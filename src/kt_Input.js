@@ -1,7 +1,13 @@
 var Utils = require('./kt_Utils');
+var Vector2 = require('./kt_Vector2');
 
 module.exports = {
     keys: new Uint8ClampedArray(255),
+    mouse: {
+        position: new Vector2(-1, -1),
+        status: 0
+    },
+    
     vKeys: {
         SHIFT: 16,
 		TAB: 9,
@@ -26,8 +32,12 @@ module.exports = {
     listenTo: function(elCanvas){
         var thus = this;
         
-        Utils.addEvent(document, 'keydown', function(eEvent){ thus.onKeyDown(eEvent); } );
-        Utils.addEvent(document, 'keyup', function(eEvent){ thus.onKeyUp(eEvent); } );
+        Utils.addEvent(document, 'keydown', function(oEvent){ thus.onKeyDown(oEvent); } );
+        Utils.addEvent(document, 'keyup', function(oEvent){ thus.onKeyUp(oEvent); } );
+        
+        Utils.addEvent(document, 'mousedown', function(oEvent){ thus.onMouseDown(oEvent, elCanvas); } );
+        Utils.addEvent(document, 'mouseup', function(oEvent){ thus.onMouseUp(oEvent, elCanvas); } );
+        Utils.addEvent(document, 'mousemove', function(oEvent){ thus.onMouseMove(oEvent, elCanvas); } );
         
         for (var i=0;i<=9;i++){
 			this.vKeys['N' + i] = 48 + i;
@@ -43,18 +53,66 @@ module.exports = {
 		}
     },
     
-    onKeyDown: function(eEvent){
-        if (this.keys[eEvent.keyCode] == 2) return;
+    onMouseDown: function(oEvent, elCanvas){
+        if (this.mouse.status == 2) return;
         
-        this.keys[eEvent.keyCode] = 1;
+        this.mouse.status = 1;
+        this.onMouseMove(oEvent, elCanvas);
     },
     
-    onKeyUp: function(eEvent){
-    	var keyCode = eEvent.keyCode;
+    onMouseUp: function(oEvent, elCanvas){
+        this.mouse.status = 3;
+        this.onMouseMove(oEvent, elCanvas);
+        
+        var thus = this;
+        setTimeout(function(){ thus.mouse.status = 0; }, 40);
+    },
+    
+    onMouseMove: function(oEvent, elCanvas){
+        var xx = oEvent.clientX - elCanvas.offsetLeft;
+        var yy = oEvent.clientY - elCanvas.offsetTop;
+        
+        var m = Math;
+        xx = m.min(elCanvas.width, m.max(xx, 0));
+        yy = m.min(elCanvas.height, m.max(yy, 0));
+        
+        this.mouse.position.set(xx, yy);
+    },
+    
+    onKeyDown: function(oEvent){
+        if (this.keys[oEvent.keyCode] == 2) return;
+        
+        this.keys[oEvent.keyCode] = 1;
+    },
+    
+    onKeyUp: function(oEvent){
+    	var keyCode = oEvent.keyCode;
         this.keys[keyCode] = 3;
         
         var thus = this;
         setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+    },
+    
+    isMouseDown: function(){
+        return (this.mouse.status == 1);
+    },
+    
+    isMousePressed: function(){
+        if (this.mouse.status == 1){
+            this.mouse.status = 2;
+            return true;
+        }
+        
+        return false;
+    },
+    
+    isMouseUp: function(){
+        if (this.mouse.status == 3){
+            this.mouse.status = 0;
+            return true;
+        }
+        
+        return false;
     },
     
     isKeyDown: function(iKeyCode){

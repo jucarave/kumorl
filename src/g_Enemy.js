@@ -1,4 +1,5 @@
 var Actor = require('./g_Actor');
+var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition){
@@ -9,7 +10,14 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
+Enemy.prototype.onAction = function(){
+    this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position));
+    this.destroy();
+};
+
 Enemy.prototype.randomMovement = function(){
+    if (this.destroyed) return;
+    
     var m = Math;
     var xTo = 0, yTo = 0;
     
@@ -22,6 +30,7 @@ Enemy.prototype.randomMovement = function(){
 };
 
 Enemy.prototype.update = function(){
+    if (this.destroyed) return;
     if (!this.mapManager.playerAction){
         Actor.prototype.update.call(this);
         return;

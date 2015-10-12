@@ -15,10 +15,9 @@ Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
 };
 
-Player.prototype.checkInput = function(){
+Player.prototype.checkMovement = function(){
+    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
-    
-    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
     
     var xTo = 0, yTo = 0;
     if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
@@ -30,6 +29,33 @@ Player.prototype.checkInput = function(){
         if (this.moveTo(xTo, yTo))
             this.doAct();
     }
+};
+
+Player.prototype.checkAction = function(){
+    if (this.mapManager.playerAction) return;
+    var Input = KT.Input;
+    
+    if (Input.isMousePressed()){
+        var mp = Input.mouse.position;
+        
+        var m = Math;
+        var mx = m.floor(mp.x / 32);
+        var my = m.floor(mp.y / 32);
+        
+        var enemy = this.mapManager.getEnemyAt(mx, my);
+        if (enemy) enemy.onAction();
+        
+        this.doAct();
+    }
+};
+
+Player.prototype.checkInput = function(){
+    var Input = KT.Input;
+    
+    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
+    
+    this.checkMovement();
+    this.checkAction();
 };
 
 Player.prototype.update = function(){

@@ -49,7 +49,11 @@ module.exports = {
         oCtx.save();
         
         oCtx.translate(x + ox, y + oy);
-        if (params.scale) oCtx.scale(params.scale.x, params.scale.y);
+        if (params.scale){ 
+            oCtx.scale(params.scale.x, params.scale.y);
+        }else{
+            oCtx.scale(1, 1);
+        }
         
         oCtx.drawImage(oSprite, 
                 iHSubImg * iw, iVSubImg * ih, iw, ih,

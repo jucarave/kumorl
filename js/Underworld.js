@@ -15,6 +15,8 @@ function Actor(oMapManager, oSprite, oPosition){
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
+    this.destroyed = false;
+    
     this.drawParams = {
         scale: this.scale
     };
@@ -37,6 +39,8 @@ Actor.prototype.moveTo = function(xTo, yTo){
 };
 
 Actor.prototype.draw = function(oCtx, view){
+    if (this.destroyed) return;
+    
     var vx = this.position.x - view.x;
     var vy = this.position.y - view.y;
     
@@ -77,6 +81,10 @@ Actor.prototype.updateMovement = function(){
     }
 };
 
+Actor.prototype.destroy = function(){
+    this.destroyed = true;
+};
+
 Actor.prototype.update = function(){
     if (!this.moving){
         this.imageIndex += this.imageSpeed;
@@ -87,8 +95,49 @@ Actor.prototype.update = function(){
     
     this.updateMovement();
 };
-},{"./kt_Kramtech":8}],2:[function(require,module,exports){
+},{"./kt_Kramtech":9}],2:[function(require,module,exports){
+var KT = require('./kt_Kramtech');
+
+function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
+    this.mapManager = oMapManager;
+    this.sprite = oSprite;
+    this.position = oPosition;
+    
+    this.onAnimationEnd = fOnAnimationEnd;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 2;
+    
+    this.destroyed = false;
+}
+
+module.exports = Animation;
+
+Animation.prototype.draw = function(oCtx, view){
+    if (this.destroyed) return;
+    
+    var vx = this.position.x - view.x;
+    var vy = this.position.y - view.y;
+    
+    if (vx + 1 < 0 || vy + 1 < 0) return;
+    if (vx > view.width || vy > view.height) return;
+    
+    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.imageIndex, 0);
+};
+
+Animation.prototype.update = function(){
+    if (!this.moving){
+        this.imageIndex += this.imageSpeed;
+        if (this.imageIndex >= this.sprite.hNum){
+            if (this.onAnimationEnd)
+                this.onAnimationEnd();
+            this.destroyed = true;
+        }
+    }
+};
+},{"./kt_Kramtech":9}],3:[function(require,module,exports){
 var Actor = require('./g_Actor');
+var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition){
@@ -99,7 +148,14 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
+Enemy.prototype.onAction = function(){
+    this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position));
+    this.destroy();
+};
+
 Enemy.prototype.randomMovement = function(){
+    if (this.destroyed) return;
+    
     var m = Math;
     var xTo = 0, yTo = 0;
     
@@ -112,6 +168,7 @@ Enemy.prototype.randomMovement = function(){
 };
 
 Enemy.prototype.update = function(){
+    if (this.destroyed) return;
     if (!this.mapManager.playerAction){
         Actor.prototype.update.call(this);
         return;
@@ -121,7 +178,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":1,"./kt_Kramtech":8}],3:[function(require,module,exports){
+},{"./g_Actor":1,"./g_Animation":2,"./kt_Kramtech":9}],4:[function(require,module,exports){
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
 var KT = require('./kt_Kramtech');
@@ -132,6 +189,8 @@ function MapManager(oGame, sMapName){
     
     this.player = null;
     this.map = null;
+    
+    this.instances = [];
     this.enemies = [];
     
     this.playerAction = false;
@@ -172,6 +231,7 @@ MapManager.prototype.loadMap = function(sMapName){
     KT.Utils.getJson('services/loadMap.php?mapName=' + this.mapName, function(error, map){
         if (error) throw "Fatal error during the execution of the app.";
         
+        thus.instances = [];
         thus.map = new Array(64);
     
         for (var i=0;i<64;i++){
@@ -182,8 +242,11 @@ MapManager.prototype.loadMap = function(sMapName){
         thus.parseTilesLocation(map.tileset);
         thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3));
         
+        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4));
+        
         thus.enemies = [];
-        thus.enemies.push(new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4)));
+        thus.enemies.push(e);
+        thus.instances.push(e);
         
         thus.ready = true;
     });
@@ -223,6 +286,18 @@ MapManager.prototype.isPlayerCollision = function(x, y){
     return true;
 };
 
+MapManager.prototype.getEnemyAt = function(x, y){
+    for (var i=0,len=this.enemies.length;i<len;i++){
+        var ep = this.enemies[i].position;
+        
+        if (ep.equals(x, y)){
+            return this.enemies[i];
+        }
+    }
+    
+    return null;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -260,14 +335,22 @@ MapManager.prototype.update = function(){
     this.drawMap();
     this.player.draw(ctx, this.view);
     
-    for (var i=0,len=this.enemies.length;i<len;i++){
-        this.enemies[i].update();
-        this.enemies[i].draw(ctx, this.view);
+    for (var i=0,len=this.instances.length;i<len;i++){
+        var ins = this.instances[i];
+        if (ins.destroyed){
+            this.instances.splice(i, 1);
+            len = this.instances.length;
+            i--;
+            continue;
+        }
+        
+        this.instances[i].update();
+        this.instances[i].draw(ctx, this.view);
     }
     
     this.playerAction = false;
 };
-},{"./g_Enemy":2,"./g_Player":4,"./kt_Kramtech":8}],4:[function(require,module,exports){
+},{"./g_Enemy":3,"./g_Player":5,"./kt_Kramtech":9}],5:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var KT = require('./kt_Kramtech');
 
@@ -285,10 +368,9 @@ Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
 };
 
-Player.prototype.checkInput = function(){
+Player.prototype.checkMovement = function(){
+    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
-    
-    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
     
     var xTo = 0, yTo = 0;
     if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
@@ -302,12 +384,39 @@ Player.prototype.checkInput = function(){
     }
 };
 
+Player.prototype.checkAction = function(){
+    if (this.mapManager.playerAction) return;
+    var Input = KT.Input;
+    
+    if (Input.isMousePressed()){
+        var mp = Input.mouse.position;
+        
+        var m = Math;
+        var mx = m.floor(mp.x / 32);
+        var my = m.floor(mp.y / 32);
+        
+        var enemy = this.mapManager.getEnemyAt(mx, my);
+        if (enemy) enemy.onAction();
+        
+        this.doAct();
+    }
+};
+
+Player.prototype.checkInput = function(){
+    var Input = KT.Input;
+    
+    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
+    
+    this.checkMovement();
+    this.checkAction();
+};
+
 Player.prototype.update = function(){
     this.checkInput();
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":1,"./kt_Kramtech":8}],5:[function(require,module,exports){
+},{"./g_Actor":1,"./kt_Kramtech":9}],6:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 
@@ -361,6 +470,8 @@ Underworld.prototype.loadTileset = function(tileset){
 Underworld.prototype.loadImages = function(){
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: new KT.Vector2(16, 16)});
+    
+    this.sprites.at_slice = KT.Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
 };
 
 Underworld.prototype.checkReadyData = function(){
@@ -421,7 +532,7 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
-},{"./g_MapManager":3,"./kt_Kramtech":8}],6:[function(require,module,exports){
+},{"./g_MapManager":4,"./kt_Kramtech":9}],7:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -473,7 +584,11 @@ module.exports = {
         oCtx.save();
         
         oCtx.translate(x + ox, y + oy);
-        if (params.scale) oCtx.scale(params.scale.x, params.scale.y);
+        if (params.scale){ 
+            oCtx.scale(params.scale.x, params.scale.y);
+        }else{
+            oCtx.scale(1, 1);
+        }
         
         oCtx.drawImage(oSprite, 
                 iHSubImg * iw, iVSubImg * ih, iw, ih,
@@ -482,11 +597,17 @@ module.exports = {
         oCtx.restore();
     }
 };
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var Utils = require('./kt_Utils');
+var Vector2 = require('./kt_Vector2');
 
 module.exports = {
     keys: new Uint8ClampedArray(255),
+    mouse: {
+        position: new Vector2(-1, -1),
+        status: 0
+    },
+    
     vKeys: {
         SHIFT: 16,
 		TAB: 9,
@@ -511,8 +632,12 @@ module.exports = {
     listenTo: function(elCanvas){
         var thus = this;
         
-        Utils.addEvent(document, 'keydown', function(eEvent){ thus.onKeyDown(eEvent); } );
-        Utils.addEvent(document, 'keyup', function(eEvent){ thus.onKeyUp(eEvent); } );
+        Utils.addEvent(document, 'keydown', function(oEvent){ thus.onKeyDown(oEvent); } );
+        Utils.addEvent(document, 'keyup', function(oEvent){ thus.onKeyUp(oEvent); } );
+        
+        Utils.addEvent(document, 'mousedown', function(oEvent){ thus.onMouseDown(oEvent, elCanvas); } );
+        Utils.addEvent(document, 'mouseup', function(oEvent){ thus.onMouseUp(oEvent, elCanvas); } );
+        Utils.addEvent(document, 'mousemove', function(oEvent){ thus.onMouseMove(oEvent, elCanvas); } );
         
         for (var i=0;i<=9;i++){
 			this.vKeys['N' + i] = 48 + i;
@@ -528,18 +653,66 @@ module.exports = {
 		}
     },
     
-    onKeyDown: function(eEvent){
-        if (this.keys[eEvent.keyCode] == 2) return;
+    onMouseDown: function(oEvent, elCanvas){
+        if (this.mouse.status == 2) return;
         
-        this.keys[eEvent.keyCode] = 1;
+        this.mouse.status = 1;
+        this.onMouseMove(oEvent, elCanvas);
     },
     
-    onKeyUp: function(eEvent){
-    	var keyCode = eEvent.keyCode;
+    onMouseUp: function(oEvent, elCanvas){
+        this.mouse.status = 3;
+        this.onMouseMove(oEvent, elCanvas);
+        
+        var thus = this;
+        setTimeout(function(){ thus.mouse.status = 0; }, 40);
+    },
+    
+    onMouseMove: function(oEvent, elCanvas){
+        var xx = oEvent.clientX - elCanvas.offsetLeft;
+        var yy = oEvent.clientY - elCanvas.offsetTop;
+        
+        var m = Math;
+        xx = m.min(elCanvas.width, m.max(xx, 0));
+        yy = m.min(elCanvas.height, m.max(yy, 0));
+        
+        this.mouse.position.set(xx, yy);
+    },
+    
+    onKeyDown: function(oEvent){
+        if (this.keys[oEvent.keyCode] == 2) return;
+        
+        this.keys[oEvent.keyCode] = 1;
+    },
+    
+    onKeyUp: function(oEvent){
+    	var keyCode = oEvent.keyCode;
         this.keys[keyCode] = 3;
         
         var thus = this;
         setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+    },
+    
+    isMouseDown: function(){
+        return (this.mouse.status == 1);
+    },
+    
+    isMousePressed: function(){
+        if (this.mouse.status == 1){
+            this.mouse.status = 2;
+            return true;
+        }
+        
+        return false;
+    },
+    
+    isMouseUp: function(){
+        if (this.mouse.status == 3){
+            this.mouse.status = 0;
+            return true;
+        }
+        
+        return false;
     },
     
     isKeyDown: function(iKeyCode){
@@ -564,7 +737,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":10}],8:[function(require,module,exports){
+},{"./kt_Utils":11,"./kt_Vector2":12}],9:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -576,7 +749,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_Canvas":6,"./kt_Input":7,"./kt_Sprite":9,"./kt_Utils":10,"./kt_Vector2":11}],9:[function(require,module,exports){
+},{"./kt_Canvas":7,"./kt_Input":8,"./kt_Sprite":10,"./kt_Utils":11,"./kt_Vector2":12}],10:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 var Vector2 = require('./kt_Vector2')
 
@@ -601,7 +774,7 @@ module.exports = {
         return img;
     }
 };
-},{"./kt_Utils":10,"./kt_Vector2":11}],10:[function(require,module,exports){
+},{"./kt_Utils":11,"./kt_Vector2":12}],11:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -650,7 +823,7 @@ module.exports = {
 		http.send();
     }
 };
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -728,7 +901,11 @@ Vector2.prototype.clone = function(){
 	return new Vector2(this.x, this.y);
 };
 
-Vector2.prototype.equals = function(vector2){
+Vector2.prototype.equals = function(x, y){
+	return (this.x == x && this.y == y);
+};
+
+Vector2.prototype.equalsVector2 = function(vector2){
 	if (!vector2.__ktv2) throw "Can only copy a vector2 to this vector";
 	
 	return (this.x == vector2.x && this.y == vector2.y);
@@ -747,4 +924,4 @@ Vector2.fromAngle = function(radian){
 	
 	return new Vector2(x, y);
 };
-},{}]},{},[5]);
+},{}]},{},[6]);

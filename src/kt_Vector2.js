@@ -75,7 +75,11 @@ Vector2.prototype.clone = function(){
 	return new Vector2(this.x, this.y);
 };
 
-Vector2.prototype.equals = function(vector2){
+Vector2.prototype.equals = function(x, y){
+	return (this.x == x && this.y == y);
+};
+
+Vector2.prototype.equalsVector2 = function(vector2){
 	if (!vector2.__ktv2) throw "Can only copy a vector2 to this vector";
 	
 	return (this.x == vector2.x && this.y == vector2.y);
