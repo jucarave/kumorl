@@ -15,6 +15,7 @@ function Actor(oMapManager, oSprite, oPosition){
     this.imageSpeed = 1 / 8;
     
     this.destroyed = false;
+    this.solid = true;
     
     this.drawParams = {
         scale: this.scale
@@ -26,7 +27,7 @@ module.exports = Actor;
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
     if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isEnemyCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isSolidCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     if (this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;

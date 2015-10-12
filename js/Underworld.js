@@ -16,6 +16,7 @@ function Actor(oMapManager, oSprite, oPosition){
     this.imageSpeed = 1 / 8;
     
     this.destroyed = false;
+    this.solid = true;
     
     this.drawParams = {
         scale: this.scale
@@ -27,7 +28,7 @@ module.exports = Actor;
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
     if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isEnemyCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isSolidCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     if (this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
@@ -191,7 +192,6 @@ function MapManager(oGame, sMapName){
     this.map = null;
     
     this.instances = [];
-    this.enemies = [];
     
     this.playerAction = false;
     
@@ -244,8 +244,6 @@ MapManager.prototype.loadMap = function(sMapName){
         
         var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4));
         
-        thus.enemies = [];
-        thus.enemies.push(e);
         thus.instances.push(e);
         
         thus.ready = true;
@@ -260,9 +258,10 @@ MapManager.prototype.isSolid = function(x, y){
     return this.game.tileset[loc.sprIndex].solid;
 };
 
-MapManager.prototype.isEnemyCollision = function(x, y){
-    for (var i=0,len=this.enemies.length;i<len;i++){
-        var e = this.enemies[i].position;
+MapManager.prototype.isSolidCollision = function(x, y){
+    for (var i=0,len=this.instances.length;i<len;i++){
+        if (!this.instances[i].solid) continue;
+        var e = this.instances[i].position;
         
         if (e.x >= x + 1) continue;
         if (e.x + 1 <= x) continue;
@@ -286,12 +285,12 @@ MapManager.prototype.isPlayerCollision = function(x, y){
     return true;
 };
 
-MapManager.prototype.getEnemyAt = function(x, y){
-    for (var i=0,len=this.enemies.length;i<len;i++){
-        var ep = this.enemies[i].position;
+MapManager.prototype.getInstanceAt = function(x, y){
+    for (var i=0,len=this.instances.length;i<len;i++){
+        var ep = this.instances[i];
         
-        if (ep.equals(x, y)){
-            return this.enemies[i];
+        if (ep.onAction && ep.position.equals(x, y)){
+            return ep;
         }
     }
     
@@ -395,7 +394,7 @@ Player.prototype.checkAction = function(){
         var mx = m.floor(mp.x / 32);
         var my = m.floor(mp.y / 32);
         
-        var enemy = this.mapManager.getEnemyAt(mx, my);
+        var enemy = this.mapManager.getInstanceAt(mx, my);
         if (enemy) enemy.onAction();
         
         this.doAct();

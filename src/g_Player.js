@@ -42,7 +42,7 @@ Player.prototype.checkAction = function(){
         var mx = m.floor(mp.x / 32);
         var my = m.floor(mp.y / 32);
         
-        var enemy = this.mapManager.getEnemyAt(mx, my);
+        var enemy = this.mapManager.getInstanceAt(mx, my);
         if (enemy) enemy.onAction();
         
         this.doAct();
