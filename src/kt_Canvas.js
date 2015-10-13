@@ -68,7 +68,6 @@ module.exports = {
     drawSpriteText: function(oCtx, sText, oFont, x, y){
         if (!oFont.ready) return;
         
-        var w = oFont.sprWidth;
         var xx = x;
         
         for (var i=0,len=sText.length;i<len;i++){

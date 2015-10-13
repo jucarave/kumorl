@@ -1,5 +1,6 @@
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
+var Console = require('./g_Console');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
@@ -69,6 +70,11 @@ Underworld.prototype.newGame = function(){
     this.maps = [];
     this.map = new MapManager(this, 'testMap');
     
+    this.console = new Console(this, this.sprites.f_font, this.canvas.width, 100, 5);
+    this.console.addMessage("Wellcome to the new Underworld project");
+    this.console.addMessage("Use the WASD keys to move and space to skip the turn");
+    this.console.addMessage("Click on the enemies to attack!");
+    
     this.loopGame();
 };
 
@@ -92,7 +98,7 @@ Underworld.prototype.update = function(){
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
     
-    KT.Canvas.drawSpriteText(this.ctx, 'Hello world!', this.sprites.f_font, 16, 16);
+    this.console.render(this.ctx, 16, 16);
 };
 
 KT.Utils.addEvent(window, 'load', function(){

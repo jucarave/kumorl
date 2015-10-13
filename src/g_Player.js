@@ -36,7 +36,10 @@ Player.prototype.attackTo = function(oEnemy){
     var dx = m.abs(oEnemy.position.x - this.position.x);
     var dy = m.abs(oEnemy.position.y - this.position.y);
     
-    if (dx > 1 || dy > 1) return;
+    if (dx > 1 || dy > 1){
+        this.mapManager.game.console.addMessage("Out of range");
+        return;
+    }
     
     oEnemy.receiveDamage();
 };
