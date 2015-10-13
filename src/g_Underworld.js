@@ -49,6 +49,8 @@ Underworld.prototype.loadTileset = function(tileset){
 };
 
 Underworld.prototype.loadImages = function(){
+    this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     
@@ -89,6 +91,8 @@ Underworld.prototype.update = function(){
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
+    
+    KT.Canvas.drawSpriteText(this.ctx, 'Hello world!', this.sprites.f_font, 16, 16);
 };
 
 KT.Utils.addEvent(window, 'load', function(){

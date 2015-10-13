@@ -55,10 +55,30 @@ module.exports = {
             oCtx.scale(1, 1);
         }
         
+        var ofy = 0;
+        if (oSprite.offsetY) ofy = oSprite.offsetY;
+        
         oCtx.drawImage(oSprite, 
-                iHSubImg * iw, iVSubImg * ih, iw, ih,
-                -ox, -oy, iw, ih);
+                iHSubImg * iw, iVSubImg * ih + ofy, iw, ih - ofy,
+                -ox, -oy, iw, ih - ofy);
                 
         oCtx.restore();
+    },
+    
+    drawSpriteText: function(oCtx, sText, oFont, x, y){
+        if (!oFont.ready) return;
+        
+        var w = oFont.sprWidth;
+        var xx = x;
+        
+        for (var i=0,len=sText.length;i<len;i++){
+            var chara = sText[i];
+            var ind = oFont.charactersList.indexOf(chara);
+            
+            if (ind == -1) ind = 0;
+            
+            this.drawSprite(oCtx, oFont, xx, y, ind, 0);
+            xx += oFont.charasWidth[ind] + 1;
+        }
     }
 };

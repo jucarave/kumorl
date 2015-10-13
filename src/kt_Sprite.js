@@ -17,8 +17,50 @@ module.exports = {
            img.hNum = img.width / img.sprWidth; 
            img.vNum = img.height / img.sprHeight;
            img.ready = true;
+           
+           if (oParams.callback){
+               oParams.callback(img);
+           }
         });
         
         return img;
+    },
+    
+    parseFont: function(oImg){
+        var canvas = document.createElement("canvas");
+        canvas.width = oImg.width;
+        canvas.height = oImg.height;
+        
+        var ctx = canvas.getContext("2d");
+        
+        ctx.drawImage(oImg, 0, 0);
+        
+        var imgData = ctx.getImageData(0, 0, oImg.width, oImg.height);
+        var data = imgData.data;
+        
+        oImg.charasWidth = [];
+        
+        var width = 0;
+        for (var i=0,len=oImg.width*4;i<len;i+=4){
+            var r = data[i];
+            var g = data[i + 1];
+            var b = data[i + 2];
+            
+            if (r == 255 && g == 0 && b == 255){
+                width += 1;
+            }else if (width > 0){
+                oImg.charasWidth.push(width);
+                width = 0;
+            }
+        }
+    },
+    
+    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList){
+        var thus = this;
+        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg); }});
+        sprite.charactersList = sCharactersList;
+        sprite.offsetY = 1;
+        
+        return sprite;
     }
 };

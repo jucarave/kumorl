@@ -481,6 +481,8 @@ Underworld.prototype.loadTileset = function(tileset){
 };
 
 Underworld.prototype.loadImages = function(){
+    this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: new KT.Vector2(16, 16)});
     
@@ -521,6 +523,8 @@ Underworld.prototype.update = function(){
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
+    
+    KT.Canvas.drawSpriteText(this.ctx, 'Hello world!', this.sprites.f_font, 16, 16);
 };
 
 KT.Utils.addEvent(window, 'load', function(){
@@ -603,11 +607,31 @@ module.exports = {
             oCtx.scale(1, 1);
         }
         
+        var ofy = 0;
+        if (oSprite.offsetY) ofy = oSprite.offsetY;
+        
         oCtx.drawImage(oSprite, 
-                iHSubImg * iw, iVSubImg * ih, iw, ih,
-                -ox, -oy, iw, ih);
+                iHSubImg * iw, iVSubImg * ih + ofy, iw, ih - ofy,
+                -ox, -oy, iw, ih - ofy);
                 
         oCtx.restore();
+    },
+    
+    drawSpriteText: function(oCtx, sText, oFont, x, y){
+        if (!oFont.ready) return;
+        
+        var w = oFont.sprWidth;
+        var xx = x;
+        
+        for (var i=0,len=sText.length;i<len;i++){
+            var chara = sText[i];
+            var ind = oFont.charactersList.indexOf(chara);
+            
+            if (ind == -1) ind = 0;
+            
+            this.drawSprite(oCtx, oFont, xx, y, ind, 0);
+            xx += oFont.charasWidth[ind] + 1;
+        }
     }
 };
 },{}],8:[function(require,module,exports){
@@ -782,9 +806,51 @@ module.exports = {
            img.hNum = img.width / img.sprWidth; 
            img.vNum = img.height / img.sprHeight;
            img.ready = true;
+           
+           if (oParams.callback){
+               oParams.callback(img);
+           }
         });
         
         return img;
+    },
+    
+    parseFont: function(oImg){
+        var canvas = document.createElement("canvas");
+        canvas.width = oImg.width;
+        canvas.height = oImg.height;
+        
+        var ctx = canvas.getContext("2d");
+        
+        ctx.drawImage(oImg, 0, 0);
+        
+        var imgData = ctx.getImageData(0, 0, oImg.width, oImg.height);
+        var data = imgData.data;
+        
+        oImg.charasWidth = [];
+        
+        var width = 0;
+        for (var i=0,len=oImg.width*4;i<len;i+=4){
+            var r = data[i];
+            var g = data[i + 1];
+            var b = data[i + 2];
+            
+            if (r == 255 && g == 0 && b == 255){
+                width += 1;
+            }else if (width > 0){
+                oImg.charasWidth.push(width);
+                width = 0;
+            }
+        }
+    },
+    
+    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList){
+        var thus = this;
+        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg); }});
+        sprite.charactersList = sCharactersList;
+        sprite.offsetY = 1;
+        
+        return sprite;
     }
 };
 },{"./kt_Utils":11,"./kt_Vector2":12}],11:[function(require,module,exports){
