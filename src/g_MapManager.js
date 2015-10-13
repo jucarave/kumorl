@@ -107,7 +107,7 @@ MapManager.prototype.getInstanceAt = function(x, y){
     for (var i=0,len=this.instances.length;i<len;i++){
         var ep = this.instances[i];
         
-        if (ep.onAction && ep.position.equals(x, y)){
+        if (ep.position.equals(x, y)){
             return ep;
         }
     }

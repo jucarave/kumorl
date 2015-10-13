@@ -4,13 +4,15 @@ var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition){
     Actor.call(this, oMapManager, oSprite, oPosition);
+    
+    this._enemy = true;
 }
 
 Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
-Enemy.prototype.onAction = function(){
+Enemy.prototype.receiveDamage = function(){
     this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position));
     this.destroy();
 };

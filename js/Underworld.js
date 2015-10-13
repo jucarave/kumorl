@@ -143,13 +143,15 @@ var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition){
     Actor.call(this, oMapManager, oSprite, oPosition);
+    
+    this._enemy = true;
 }
 
 Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
-Enemy.prototype.onAction = function(){
+Enemy.prototype.receiveDamage = function(){
     this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position));
     this.destroy();
 };
@@ -289,7 +291,7 @@ MapManager.prototype.getInstanceAt = function(x, y){
     for (var i=0,len=this.instances.length;i<len;i++){
         var ep = this.instances[i];
         
-        if (ep.onAction && ep.position.equals(x, y)){
+        if (ep.position.equals(x, y)){
             return ep;
         }
     }
@@ -383,6 +385,16 @@ Player.prototype.checkMovement = function(){
     }
 };
 
+Player.prototype.attackTo = function(oEnemy){
+    var m = Math;
+    var dx = m.abs(oEnemy.position.x - this.position.x);
+    var dy = m.abs(oEnemy.position.y - this.position.y);
+    
+    if (dx > 1 || dy > 1) return;
+    
+    oEnemy.receiveDamage();
+};
+
 Player.prototype.checkAction = function(){
     if (this.mapManager.playerAction) return;
     var Input = KT.Input;
@@ -394,8 +406,10 @@ Player.prototype.checkAction = function(){
         var mx = m.floor(mp.x / 32);
         var my = m.floor(mp.y / 32);
         
-        var enemy = this.mapManager.getInstanceAt(mx, my);
-        if (enemy) enemy.onAction();
+        var instance = this.mapManager.getInstanceAt(mx, my);
+        if (instance){
+            if (instance._enemy) this.attackTo(instance);
+        }
         
         this.doAct();
     }
