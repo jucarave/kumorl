@@ -1,5 +1,6 @@
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
+var EnemyFactory = require('./d_EnemyFactory');
 var KT = require('./kt_Kramtech');
 
 function MapManager(oGame, sMapName){
@@ -61,7 +62,7 @@ MapManager.prototype.loadMap = function(sMapName){
         
         thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
         
-        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4));
+        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4), EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);
         
         thus.ready = true;

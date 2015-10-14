@@ -27,6 +27,11 @@ Console.prototype.addMessage = function(sText){
     this.preRender();
 };
 
+Console.prototype.addToLast = function(sText){
+    this.messages[this.messages.length - 1] += sText;
+    this.preRender();
+};
+
 Console.prototype.preRender = function(){
     var Canvas = KT.Canvas;
     Canvas.clearCanvas(this.ctx);

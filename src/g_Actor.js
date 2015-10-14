@@ -2,6 +2,7 @@ var KT = require('./kt_Kramtech');
 
 function Actor(oMapManager, oSprite, oPosition){
     this.mapManager = oMapManager;
+    this.game = oMapManager.game;
     this.sprite = oSprite;
     
     this.position = oPosition;
