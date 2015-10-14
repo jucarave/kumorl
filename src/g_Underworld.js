@@ -1,6 +1,7 @@
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
+var PlayerStats = require('./d_PlayerStats');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
@@ -12,6 +13,7 @@ function Underworld(elDiv){
     this.map = null;
     this.sprites = {};
     this.tileset = [];
+    this.party = [];
     
     this.fps = 1000 / 30;
     this.lastFrame = 0;
@@ -70,12 +72,23 @@ Underworld.prototype.newGame = function(){
     this.maps = [];
     this.map = new MapManager(this, 'testMap');
     
+    this.party.push(new PlayerStats(this));
+    this.party[0].name = 'Kram';
+    
     this.console = new Console(this, this.sprites.f_font, this.canvas.width, 100, 5);
     this.console.addMessage("Wellcome to the new Underworld project");
     this.console.addMessage("Use the WASD keys to move and space to skip the turn");
     this.console.addMessage("Click on the enemies to attack!");
     
     this.loopGame();
+};
+
+Underworld.prototype.rollDice = function(sDice){
+    var D = sDice.indexOf('D');
+    var a = parseInt(sDice.substring(0, D), 10);
+    var b = parseInt(sDice.substring(D + 1), 10);
+    
+    return a + Math.floor(Math.random() * b);
 };
 
 Underworld.prototype.loopGame = function(){

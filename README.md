@@ -1,2 +1,2 @@
 # Develop using the command:
-watchify src/Underworld.js -o js/Underworld.js
+watchify src/g_Underworld.js -o js/Underworld.js

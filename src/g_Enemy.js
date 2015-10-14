@@ -12,7 +12,7 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
-Enemy.prototype.receiveDamage = function(){
+Enemy.prototype.receiveDamage = function(iDmg){
     this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position));
     this.destroy();
 };

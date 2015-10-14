@@ -58,10 +58,10 @@ MapManager.prototype.loadMap = function(sMapName){
         
         thus.game.loadTileset(map.tileset);
         thus.parseTilesLocation(map.tileset);
-        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3));
+        
+        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
         
         var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4));
-        
         thus.instances.push(e);
         
         thus.ready = true;

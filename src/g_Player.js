@@ -1,10 +1,12 @@
 var Actor = require('./g_Actor');
 var KT = require('./kt_Kramtech');
 
-function Player(oMapManager, oSprite, oPosition){
+function Player(oMapManager, oSprite, oPosition, oPartyMember){
     Actor.call(this, oMapManager, oSprite, oPosition);
     
+    this.game = oMapManager.game;
     this._player = true;
+    this.partyMember = oPartyMember;
 }
 
 Player.prototype = Object.create(Actor.prototype);
@@ -37,11 +39,12 @@ Player.prototype.attackTo = function(oEnemy){
     var dy = m.abs(oEnemy.position.y - this.position.y);
     
     if (dx > 1 || dy > 1){
-        this.mapManager.game.console.addMessage("Out of range");
+        this.game.console.addMessage("Out of range");
         return;
     }
     
-    oEnemy.receiveDamage();
+    var dmg = this.game.rollDice(this.partyMember.atk);
+    oEnemy.receiveDamage(dmg);
 };
 
 Player.prototype.checkAction = function(){
