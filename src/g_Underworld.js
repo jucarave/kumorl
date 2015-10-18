@@ -89,7 +89,14 @@ Underworld.prototype.rollDice = function(sDice){
     var a = parseInt(sDice.substring(0, D), 10);
     var b = parseInt(sDice.substring(D + 1), 10);
     
-    return a + Math.floor(Math.random() * b);
+    var result = 0;
+    
+    var m = Math;
+    for (var i=0;i<a;i++){
+        result += m.ceil(m.random() * b);
+    }
+    
+    return result;
 };
 
 Underworld.prototype.createFloatText = function(sText, oPosition){

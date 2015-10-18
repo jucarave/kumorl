@@ -9,11 +9,11 @@ function PlayerStats(oGame){
     this.mp = 0;
     this.mMp = 0;
     
-    this.atk = '5D2';
-    this.dfs = '5D2';
-    this.spd = '5D2';
-    this.luk = '5D2';
-    this.int = '5D2';
+    this.atk = '2D3';
+    this.dfs = '2D3';
+    this.spd = '2D3';
+    this.luk = '2D3';
+    this.int = '2D3';
     
     this.items = [];
 }

@@ -173,7 +173,7 @@ MapManager.prototype.update = function(){
         this.instances[i].draw(ctx, this.view);
     }
     
-    if (this.attack && this.attack.destroyed && this.attack.target.blink == 0){
+    if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
         this.attack = null;
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;

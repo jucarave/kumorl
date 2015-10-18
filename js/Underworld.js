@@ -1,7 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
     enemies: {
-        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '3D2', dfs: '1D2' }
+        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '2D3', dfs: '1D4' }
     },
     
     getEnemy: function(code){
@@ -29,11 +29,11 @@ function PlayerStats(oGame){
     this.mp = 0;
     this.mMp = 0;
     
-    this.atk = '5D2';
-    this.dfs = '5D2';
-    this.spd = '5D2';
-    this.luk = '5D2';
-    this.int = '5D2';
+    this.atk = '2D3';
+    this.dfs = '2D3';
+    this.spd = '2D3';
+    this.luk = '2D3';
+    this.int = '2D3';
     
     this.items = [];
 }
@@ -235,7 +235,6 @@ Console.prototype.render = function(oCtx, x, y){
 };
 },{"./kt_Kramtech":13}],6:[function(require,module,exports){
 var Actor = require('./g_Actor');
-var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition, enemyStats){
@@ -254,12 +253,13 @@ Enemy.prototype.receiveDamage = function(iDmg){
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){
+        this.game.createFloatText('Blocked', this.position.clone());
         this.game.console.addToLast(", Blocked");
         return;
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.game.createFloatText(dmg, this.position.clone());
+    this.game.createFloatText(dmg + '', this.position.clone());
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     
@@ -299,7 +299,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":3,"./g_Animation":4,"./kt_Kramtech":13}],7:[function(require,module,exports){
+},{"./g_Actor":3,"./kt_Kramtech":13}],7:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
@@ -522,7 +522,7 @@ MapManager.prototype.update = function(){
         this.instances[i].draw(ctx, this.view);
     }
     
-    if (this.attack && this.attack.destroyed && this.attack.target.blink == 0){
+    if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
         this.attack = null;
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;
@@ -709,7 +709,14 @@ Underworld.prototype.rollDice = function(sDice){
     var a = parseInt(sDice.substring(0, D), 10);
     var b = parseInt(sDice.substring(D + 1), 10);
     
-    return a + Math.floor(Math.random() * b);
+    var result = 0;
+    
+    var m = Math;
+    for (var i=0;i<a;i++){
+        result += m.ceil(m.random() * b);
+    }
+    
+    return result;
 };
 
 Underworld.prototype.createFloatText = function(sText, oPosition){

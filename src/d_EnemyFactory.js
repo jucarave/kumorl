@@ -1,6 +1,6 @@
 module.exports = {
     enemies: {
-        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '3D2', dfs: '1D2' }
+        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '2D3', dfs: '1D4' }
     },
     
     getEnemy: function(code){
