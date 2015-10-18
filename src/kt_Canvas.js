@@ -37,6 +37,9 @@ module.exports = {
         if (!oSprite.ready) return;
         if (!params) params = window.empt;
         
+        x = x << 0;
+        y = y << 0;
+        
         iHSubImg = iHSubImg << 0;
         iVSubImg = iVSubImg << 0;
         

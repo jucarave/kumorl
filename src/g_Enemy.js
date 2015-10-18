@@ -23,12 +23,12 @@ Enemy.prototype.receiveDamage = function(iDmg){
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position.clone()));
+    this.game.createFloatText(dmg, this.position.clone());
     this.enemyStats.hp -= dmg;
+    this.blink = 12;
     
     if (this.enemyStats.hp <= 0){
-        this.game.console.addMessage(this.enemyStats.name + " died");
-        this.destroy();
+        this.enemyStats.hp = 0;
     }
 };
 
@@ -48,8 +48,14 @@ Enemy.prototype.randomMovement = function(){
 
 Enemy.prototype.update = function(){
     if (this.destroyed) return;
-    if (!this.mapManager.playerAction){
+    if (!this.mapManager.playerAction || this.mapManager.attack){
         Actor.prototype.update.call(this);
+        return;
+    }
+    
+    if (this.enemyStats.hp <= 0){
+        this.game.console.addMessage(this.enemyStats.name + " died");
+        this.destroy();
         return;
     }
     

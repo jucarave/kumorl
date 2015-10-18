@@ -1,7 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
     enemies: {
-        bat: { name: 'Giant bat', code: 'bat', hp: 8, atk: '3D2', dfs: '1D2' }
+        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '3D2', dfs: '1D2' }
     },
     
     getEnemy: function(code){
@@ -60,6 +60,8 @@ function Actor(oMapManager, oSprite, oPosition){
     this.destroyed = false;
     this.solid = true;
     
+    this.blink = -1;
+    
     this.drawParams = {
         scale: this.scale
     };
@@ -81,14 +83,16 @@ Actor.prototype.moveTo = function(xTo, yTo){
     return true;
 };
 
-Actor.prototype.draw = function(oCtx, view){
+Actor.prototype.draw = function(oCtx, oView){
     if (this.destroyed) return;
+    if (this.blink >= 10) return;
+    if (this.blink >= 4 && this.blink < 7) return;
     
-    var vx = this.position.x - view.x;
-    var vy = this.position.y - view.y;
+    var vx = this.position.x - oView.x;
+    var vy = this.position.y - oView.y;
     
     if (vx + 1 < 0 || vy + 1 < 0) return;
-    if (vx > view.width || vy > view.height) return;
+    if (vx > oView.width || vy > oView.height) return;
     
     KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
 };
@@ -136,9 +140,11 @@ Actor.prototype.update = function(){
         }
     }
     
+    if (this.blink >= 0) this.blink -= 1;
+    
     this.updateMovement();
 };
-},{"./kt_Kramtech":12}],4:[function(require,module,exports){
+},{"./kt_Kramtech":13}],4:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
@@ -178,7 +184,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":12}],5:[function(require,module,exports){
+},{"./kt_Kramtech":13}],5:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -227,7 +233,7 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":12}],6:[function(require,module,exports){
+},{"./kt_Kramtech":13}],6:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
@@ -253,12 +259,12 @@ Enemy.prototype.receiveDamage = function(iDmg){
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.mapManager.instances.push(new Animation(this.mapManager, this.mapManager.game.sprites.at_slice, this.position.clone()));
+    this.game.createFloatText(dmg, this.position.clone());
     this.enemyStats.hp -= dmg;
+    this.blink = 12;
     
     if (this.enemyStats.hp <= 0){
-        this.game.console.addMessage(this.enemyStats.name + " died");
-        this.destroy();
+        this.enemyStats.hp = 0;
     }
 };
 
@@ -278,8 +284,14 @@ Enemy.prototype.randomMovement = function(){
 
 Enemy.prototype.update = function(){
     if (this.destroyed) return;
-    if (!this.mapManager.playerAction){
+    if (!this.mapManager.playerAction || this.mapManager.attack){
         Actor.prototype.update.call(this);
+        return;
+    }
+    
+    if (this.enemyStats.hp <= 0){
+        this.game.console.addMessage(this.enemyStats.name + " died");
+        this.destroy();
         return;
     }
     
@@ -287,7 +299,54 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":3,"./g_Animation":4,"./kt_Kramtech":12}],7:[function(require,module,exports){
+},{"./g_Actor":3,"./g_Animation":4,"./kt_Kramtech":13}],7:[function(require,module,exports){
+var KT = require('./kt_Kramtech');
+
+function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
+    this.mapManager = oMapManager;
+    this.position = oPosition;
+    this.text = sText;
+    this.lifetime = iLifetime;
+    this.floatUp = bFloatUp;
+    this.font = oFont;
+    
+    this.fixPosition();
+    
+    this.destroyed = false;
+}
+
+module.exports = FloatText;
+
+FloatText.prototype.fixPosition = function(){
+    this.position.x += 0.5;
+    
+    var width = KT.Sprite.getTextSpriteWidth(this.font, this.text);
+    this.position.x -= (width / 2) / 32;
+};
+
+FloatText.prototype.draw = function(oCtx, oView){
+    var vx = this.position.x - oView.x;
+    var vy = this.position.y - oView.y;
+    
+    if (vx + 1 < 0 || vy + 1 < 0) return;
+    if (vx > oView.width || vy > oView.height) return;
+    
+    KT.Canvas.drawSpriteText(oCtx, this.text, this.font, vx * 32, vy * 32);
+};
+
+FloatText.prototype.update = function(){
+    if (--this.lifetime <= 0){ 
+        this.destroyed = true;
+        return; 
+    }
+    
+    if (this.floatUp){
+        this.position.y -= 0.05;
+    }
+};
+
+
+},{"./kt_Kramtech":13}],8:[function(require,module,exports){
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
 var EnemyFactory = require('./d_EnemyFactory');
@@ -301,6 +360,7 @@ function MapManager(oGame, sMapName){
     this.map = null;
     
     this.instances = [];
+    this.attack = null;
     
     this.playerAction = false;
     
@@ -406,6 +466,12 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
+MapManager.prototype.createAttack = function(oAnimation, target){
+    this.instances.push(oAnimation);
+    this.attack = oAnimation;
+    this.attack.target = target;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -456,10 +522,15 @@ MapManager.prototype.update = function(){
         this.instances[i].draw(ctx, this.view);
     }
     
-    this.playerAction = false;
+    if (this.attack && this.attack.destroyed && this.attack.target.blink == 0){
+        this.attack = null;
+    }else if (!this.attack && this.playerAction){
+        this.playerAction = false;
+    }
 };
-},{"./d_EnemyFactory":1,"./g_Enemy":6,"./g_Player":8,"./kt_Kramtech":12}],8:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./g_Enemy":6,"./g_Player":9,"./kt_Kramtech":13}],9:[function(require,module,exports){
 var Actor = require('./g_Actor');
+var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 
 function Player(oMapManager, oSprite, oPosition, oPartyMember){
@@ -478,7 +549,6 @@ Player.prototype.doAct = function(){
 };
 
 Player.prototype.checkMovement = function(){
-    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
     
     var xTo = 0, yTo = 0;
@@ -505,12 +575,14 @@ Player.prototype.attackTo = function(oEnemy){
     
     this.game.console.addMessage("Attacking " + oEnemy.enemyStats.name);
     
-    var dmg = this.game.rollDice(this.partyMember.atk);
-    oEnemy.receiveDamage(dmg);
+    var thus = this;
+    this.mapManager.createAttack(new Animation(this.mapManager, this.game.sprites.at_slice, oEnemy.position.clone(), function(){
+        var dmg = thus.game.rollDice(thus.partyMember.atk);
+        oEnemy.receiveDamage(dmg);
+    }), oEnemy );
 };
 
 Player.prototype.checkAction = function(){
-    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
     
     if (Input.isMousePressed()){
@@ -539,15 +611,18 @@ Player.prototype.checkInput = function(){
 };
 
 Player.prototype.update = function(){
-    this.checkInput();
+    if (!this.mapManager.playerAction && !this.mapManager.attack){
+        this.checkInput();
+    }
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":3,"./kt_Kramtech":12}],9:[function(require,module,exports){
+},{"./g_Actor":3,"./g_Animation":4,"./kt_Kramtech":13}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
+var FloatText = require('./g_FloatText');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
@@ -637,6 +712,11 @@ Underworld.prototype.rollDice = function(sDice){
     return a + Math.floor(Math.random() * b);
 };
 
+Underworld.prototype.createFloatText = function(sText, oPosition){
+    var fText = new FloatText(this.map, oPosition, sText, this.sprites.f_font, 30, true);
+    this.map.instances.push(fText);
+};
+
 Underworld.prototype.loopGame = function(){
     var nowDate = (new Date()).getTime();
     var delta = nowDate - this.lastFrame;
@@ -669,7 +749,7 @@ KT.Utils.addEvent(window, 'load', function(){
         }else{
            setTimeout(wait, 1000 / 30);
         }
-    }
+    };
     
     wait();
 });
@@ -682,7 +762,7 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
-},{"./d_PlayerStats":2,"./g_Console":5,"./g_MapManager":7,"./kt_Kramtech":12}],10:[function(require,module,exports){
+},{"./d_PlayerStats":2,"./g_Console":5,"./g_FloatText":7,"./g_MapManager":8,"./kt_Kramtech":13}],11:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -721,6 +801,9 @@ module.exports = {
     drawSprite: function(oCtx, oSprite, x, y, iHSubImg, iVSubImg, params){
         if (!oSprite.ready) return;
         if (!params) params = window.empt;
+        
+        x = x << 0;
+        y = y << 0;
         
         iHSubImg = iHSubImg << 0;
         iVSubImg = iVSubImg << 0;
@@ -766,7 +849,7 @@ module.exports = {
         }
     }
 };
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -906,7 +989,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":14,"./kt_Vector2":15}],12:[function(require,module,exports){
+},{"./kt_Utils":15,"./kt_Vector2":16}],13:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -918,7 +1001,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_Canvas":10,"./kt_Input":11,"./kt_Sprite":13,"./kt_Utils":14,"./kt_Vector2":15}],13:[function(require,module,exports){
+},{"./kt_Canvas":11,"./kt_Input":12,"./kt_Sprite":14,"./kt_Utils":15,"./kt_Vector2":16}],14:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 var Vector2 = require('./kt_Vector2')
 
@@ -983,9 +1066,23 @@ module.exports = {
         sprite.offsetY = 1;
         
         return sprite;
+    },
+    
+    getTextSpriteWidth: function(oFont, sText){
+        var width = 0;
+        for (var i=0,len=sText.length;i<len;i++){
+            var chara = sText[i];
+            var ind = oFont.charactersList.indexOf(chara);
+            
+            if (ind == -1) ind = 0;
+            
+            width += oFont.charasWidth[ind] + 1;
+        }
+        
+        return width - 1;
     }
 };
-},{"./kt_Utils":14,"./kt_Vector2":15}],14:[function(require,module,exports){
+},{"./kt_Utils":15,"./kt_Vector2":16}],15:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -1034,7 +1131,7 @@ module.exports = {
 		http.send();
     }
 };
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -1135,4 +1232,4 @@ Vector2.fromAngle = function(radian){
 	
 	return new Vector2(x, y);
 };
-},{}]},{},[9]);
+},{}]},{},[10]);

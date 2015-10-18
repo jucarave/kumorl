@@ -62,5 +62,19 @@ module.exports = {
         sprite.offsetY = 1;
         
         return sprite;
+    },
+    
+    getTextSpriteWidth: function(oFont, sText){
+        var width = 0;
+        for (var i=0,len=sText.length;i<len;i++){
+            var chara = sText[i];
+            var ind = oFont.charactersList.indexOf(chara);
+            
+            if (ind == -1) ind = 0;
+            
+            width += oFont.charasWidth[ind] + 1;
+        }
+        
+        return width - 1;
     }
 };

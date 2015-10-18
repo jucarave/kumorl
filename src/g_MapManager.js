@@ -11,6 +11,7 @@ function MapManager(oGame, sMapName){
     this.map = null;
     
     this.instances = [];
+    this.attack = null;
     
     this.playerAction = false;
     
@@ -116,6 +117,12 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
+MapManager.prototype.createAttack = function(oAnimation, target){
+    this.instances.push(oAnimation);
+    this.attack = oAnimation;
+    this.attack.target = target;
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -166,5 +173,9 @@ MapManager.prototype.update = function(){
         this.instances[i].draw(ctx, this.view);
     }
     
-    this.playerAction = false;
+    if (this.attack && this.attack.destroyed && this.attack.target.blink == 0){
+        this.attack = null;
+    }else if (!this.attack && this.playerAction){
+        this.playerAction = false;
+    }
 };

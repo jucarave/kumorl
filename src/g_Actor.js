@@ -18,6 +18,8 @@ function Actor(oMapManager, oSprite, oPosition){
     this.destroyed = false;
     this.solid = true;
     
+    this.blink = -1;
+    
     this.drawParams = {
         scale: this.scale
     };
@@ -39,14 +41,16 @@ Actor.prototype.moveTo = function(xTo, yTo){
     return true;
 };
 
-Actor.prototype.draw = function(oCtx, view){
+Actor.prototype.draw = function(oCtx, oView){
     if (this.destroyed) return;
+    if (this.blink >= 10) return;
+    if (this.blink >= 4 && this.blink < 7) return;
     
-    var vx = this.position.x - view.x;
-    var vy = this.position.y - view.y;
+    var vx = this.position.x - oView.x;
+    var vy = this.position.y - oView.y;
     
     if (vx + 1 < 0 || vy + 1 < 0) return;
-    if (vx > view.width || vy > view.height) return;
+    if (vx > oView.width || vy > oView.height) return;
     
     KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32) - this.position.z, this.imageIndex, 0, this.drawParams);
 };
@@ -93,6 +97,8 @@ Actor.prototype.update = function(){
             this.imageIndex = 0;
         }
     }
+    
+    if (this.blink >= 0) this.blink -= 1;
     
     this.updateMovement();
 };

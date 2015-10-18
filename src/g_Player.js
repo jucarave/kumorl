@@ -1,4 +1,5 @@
 var Actor = require('./g_Actor');
+var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 
 function Player(oMapManager, oSprite, oPosition, oPartyMember){
@@ -17,7 +18,6 @@ Player.prototype.doAct = function(){
 };
 
 Player.prototype.checkMovement = function(){
-    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
     
     var xTo = 0, yTo = 0;
@@ -44,12 +44,14 @@ Player.prototype.attackTo = function(oEnemy){
     
     this.game.console.addMessage("Attacking " + oEnemy.enemyStats.name);
     
-    var dmg = this.game.rollDice(this.partyMember.atk);
-    oEnemy.receiveDamage(dmg);
+    var thus = this;
+    this.mapManager.createAttack(new Animation(this.mapManager, this.game.sprites.at_slice, oEnemy.position.clone(), function(){
+        var dmg = thus.game.rollDice(thus.partyMember.atk);
+        oEnemy.receiveDamage(dmg);
+    }), oEnemy );
 };
 
 Player.prototype.checkAction = function(){
-    if (this.mapManager.playerAction) return;
     var Input = KT.Input;
     
     if (Input.isMousePressed()){
@@ -78,7 +80,9 @@ Player.prototype.checkInput = function(){
 };
 
 Player.prototype.update = function(){
-    this.checkInput();
+    if (!this.mapManager.playerAction && !this.mapManager.attack){
+        this.checkInput();
+    }
     
     Actor.prototype.update.call(this);
 };
