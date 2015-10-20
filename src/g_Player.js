@@ -15,6 +15,12 @@ module.exports = Player;
 
 Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
+    
+    var position = this.position;
+    if (this.target.x != -1) position = this.target;
+    
+    this.mapManager.clearVisibleMap();
+    this.mapManager.castLight(position, 5);
 };
 
 Player.prototype.checkMovement = function(){
@@ -58,8 +64,8 @@ Player.prototype.checkAction = function(){
         var mp = Input.mouse.position;
         
         var m = Math;
-        var mx = m.floor(mp.x / 32);
-        var my = m.floor(mp.y / 32);
+        var mx = m.floor(mp.x / 32) + (this.mapManager.view.x << 0);
+        var my = m.floor(mp.y / 32) + (this.mapManager.view.y << 0);
         
         var instance = this.mapManager.getInstanceAt(mx, my);
         if (instance){

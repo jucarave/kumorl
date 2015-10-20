@@ -43,6 +43,7 @@ Actor.prototype.moveTo = function(xTo, yTo){
 
 Actor.prototype.draw = function(oCtx, oView){
     if (this.destroyed) return;
+    if (!this.mapManager.isVisible(this.position.x, this.position.y)) return;
     if (this.blink >= 10) return;
     if (this.blink >= 4 && this.blink < 7) return;
     

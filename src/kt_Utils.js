@@ -44,5 +44,15 @@ module.exports = {
 			}
 		};
 		http.send();
-    }
+    },
+    
+    get2DAngle: function(x1, y1, x2, y2){
+		var xx = (x2 - x1);
+		var yy = (y1 - y2);
+		
+		var PI2 = Math.PI * 2;
+		var ang = (Math.atan2(yy, xx) + PI2) % PI2;
+		
+		return ang;
+	}
 };

@@ -85,6 +85,7 @@ Actor.prototype.moveTo = function(xTo, yTo){
 
 Actor.prototype.draw = function(oCtx, oView){
     if (this.destroyed) return;
+    if (!this.mapManager.isVisible(this.position.x, this.position.y)) return;
     if (this.blink >= 10) return;
     if (this.blink >= 4 && this.blink < 7) return;
     
@@ -358,6 +359,7 @@ function MapManager(oGame, sMapName){
     
     this.player = null;
     this.map = null;
+    this.visible = null;
     
     this.instances = [];
     this.attack = null;
@@ -402,9 +404,11 @@ MapManager.prototype.loadMap = function(sMapName){
         
         thus.instances = [];
         thus.map = new Array(64);
+        thus.visible = new Array(64);
     
         for (var i=0;i<64;i++){
             thus.map[i] = new Uint8ClampedArray(map.mapData[i]);
+            thus.visible[i] = new Uint8ClampedArray(64);
         }
         
         thus.game.loadTileset(map.tileset);
@@ -416,11 +420,21 @@ MapManager.prototype.loadMap = function(sMapName){
         thus.instances.push(e);
         
         thus.ready = true;
+        
+        thus.castLight(thus.player.position, 5);
     });
 };
 
+MapManager.prototype.isVisible = function(x, y){
+    var t = this.visible[y << 0][x << 0];
+    if (t < 2)
+        return false;
+    
+    return true;
+};
+
 MapManager.prototype.isSolid = function(x, y){
-    var t = this.map[y][x];
+    var t = this.map[y << 0][x << 0];
     if (t == 0) return true;
     
     var loc = this.tilesLoc[t];
@@ -472,6 +486,77 @@ MapManager.prototype.createAttack = function(oAnimation, target){
     this.attack.target = target;
 };
 
+MapManager.prototype.clearVisibleMap = function(){
+    for (var y=0;y<64;y++){
+        for (var x=0;x<64;x++){
+            if (this.visible[y][x] >= 2){
+                this.visible[y][x] = 1;
+            }
+        }
+    }
+};
+
+MapManager.prototype.castLight = function(oPosition, iDistance){
+    var dis = iDistance * 2;
+    
+    var x1 = oPosition.x - dis + 0.5;
+    var y1 = oPosition.y - dis + 0.5;
+    var x2 = oPosition.x + dis + 0.5;
+    var y2 = oPosition.y + dis + 0.5;
+    
+    var Utils = KT.Utils;
+    var m = Math;
+    
+    var thus = this;
+    var raycast = function(rx, ry, ang){
+        var cos = m.cos(ang);
+        var sin = m.sin(ang);
+        
+        for (var j=0;j<iDistance;j++){
+            var cx = rx << 0;
+            var cy = ry << 0;
+                
+            var dim = m.max(j - 1, 0);
+            thus.visible[cy][cx] = 2 + dim;
+            if (thus.isSolid(cx, cy)){
+                j = iDistance;
+                continue;
+            }
+                
+            rx += cos;
+            ry -= sin;
+        }  
+    };
+    
+    var hy = y1;
+    var ang, rx, ry;
+    
+    for (var k=0;k<2;k++){
+        for (var i=x1;i<=x2;i++){
+            ang = Utils.get2DAngle(oPosition.x + 0.5, oPosition.y + 0.5, i, hy);
+            rx = oPosition.x + 0.5;
+            ry = oPosition.y + 0.5;
+
+            raycast(rx, ry, ang);
+        }
+        
+        hy = y2;
+    }
+    
+    var hx = x1;
+    for (var k=0;k<2;k++){
+        for (var i=y1;i<=y2;i++){
+            ang = Utils.get2DAngle(oPosition.x + 0.5, oPosition.y + 0.5, hx, i);
+            rx = oPosition.x + 0.5;
+            ry = oPosition.y + 0.5;
+            
+            raycast(rx, ry, ang);
+        }
+        
+        hx = x2;
+    }
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx = this.game.ctx;
     var drawSprite = KT.Canvas.drawSprite;
@@ -494,9 +579,24 @@ MapManager.prototype.drawMap = function(){
             var t = this.map[y][x];
             if (t == 0) continue;
             
+            var v = this.visible[y][x];
+            if (v == 0) continue;
+            
+            var cx = (x - this.view.x) * 32; 
+            var cy = (y - this.view.y) * 32;
+            
             var loc = this.tilesLoc[t];
             var sprite = this.game.tileset[loc.sprIndex].sprite;
-            drawSprite(ctx, sprite, (x - this.view.x) * 32, (y - this.view.y) * 32, loc.x, loc.y);
+            drawSprite(ctx, sprite, cx, cy, loc.x, loc.y);
+            
+            if (v == 1){
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(cx,cy,32,32);
+            }else if (v > 2){
+                var a = (v - 1) / 10;
+                ctx.fillStyle = "rgba(0,0,0," + a + ")";
+                ctx.fillRect(cx,cy,32,32);
+            }
         }
     }
 };
@@ -546,6 +646,12 @@ module.exports = Player;
 
 Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
+    
+    var position = this.position;
+    if (this.target.x != -1) position = this.target;
+    
+    this.mapManager.clearVisibleMap();
+    this.mapManager.castLight(position, 5);
 };
 
 Player.prototype.checkMovement = function(){
@@ -589,8 +695,8 @@ Player.prototype.checkAction = function(){
         var mp = Input.mouse.position;
         
         var m = Math;
-        var mx = m.floor(mp.x / 32);
-        var my = m.floor(mp.y / 32);
+        var mx = m.floor(mp.x / 32) + (this.mapManager.view.x << 0);
+        var my = m.floor(mp.y / 32) + (this.mapManager.view.y << 0);
         
         var instance = this.mapManager.getInstanceAt(mx, my);
         if (instance){
@@ -1136,7 +1242,17 @@ module.exports = {
 			}
 		};
 		http.send();
-    }
+    },
+    
+    get2DAngle: function(x1, y1, x2, y2){
+		var xx = (x2 - x1);
+		var yy = (y1 - y2);
+		
+		var PI2 = Math.PI * 2;
+		var ang = (Math.atan2(yy, xx) + PI2) % PI2;
+		
+		return ang;
+	}
 };
 },{}],16:[function(require,module,exports){
 function Vector2(x, y){
