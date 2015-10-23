@@ -1,7 +1,9 @@
+var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
 var EnemyFactory = require('./d_EnemyFactory');
-var KT = require('./kt_Kramtech');
+var Item = require('./g_Item');
+var ItemFactory = require('./d_ItemFactory');
 
 function MapManager(oGame, sMapName){
     this.game = oGame;
@@ -64,6 +66,11 @@ MapManager.prototype.loadMap = function(sMapName){
         thus.game.loadTileset(map.tileset);
         thus.parseTilesLocation(map.tileset);
         
+        for (var i=0,len=map.items.length;i<len;i++){
+            var item = map.items[i];
+            thus.instances.push(new Item(thus, new KT.Vector2(item.x, item.y), ItemFactory.getItem('sword', 1, 1)));
+        }
+        
         thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
         
         var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4), EnemyFactory.getEnemy('bat'));
@@ -119,7 +126,7 @@ MapManager.prototype.isPlayerCollision = function(x, y){
 };
 
 MapManager.prototype.getInstanceAt = function(x, y){
-    for (var i=0,len=this.instances.length;i<len;i++){
+    for (var i=this.instances.length-1;i>=0;i++){
         var ep = this.instances[i];
         
         if (ep.position.equals(x, y)){
@@ -243,7 +250,7 @@ MapManager.prototype.drawMap = function(){
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.fillRect(cx,cy,32,32);
             }else if (v > 2){
-                var a = (v - 1) / 10;
+                var a = (v - 1) / 15;
                 ctx.fillStyle = "rgba(0,0,0," + a + ")";
                 ctx.fillRect(cx,cy,32,32);
             }
@@ -257,7 +264,6 @@ MapManager.prototype.update = function(){
     this.player.update();
     
     this.drawMap();
-    this.player.draw(ctx, this.view);
     
     for (var i=0,len=this.instances.length;i<len;i++){
         var ins = this.instances[i];
@@ -271,6 +277,8 @@ MapManager.prototype.update = function(){
         this.instances[i].update();
         this.instances[i].draw(ctx, this.view);
     }
+    
+    this.player.draw(ctx, this.view);
     
     if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
         this.attack = null;
