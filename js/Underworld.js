@@ -277,13 +277,13 @@ Enemy.prototype.receiveDamage = function(iDmg){
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){
-        this.game.createFloatText('Blocked', this.position.clone());
+        this.mapManager.createFloatText('Blocked', this.position.clone());
         this.game.console.addToLast(", Blocked");
         return;
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.game.createFloatText(dmg + '', this.position.clone());
+    this.mapManager.createFloatText(dmg + '', this.position.clone());
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     
@@ -408,6 +408,7 @@ var Enemy = require('./g_Enemy');
 var EnemyFactory = require('./d_EnemyFactory');
 var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
+var FloatText = require('./g_FloatText');
 
 function MapManager(oGame, sMapName){
     this.game = oGame;
@@ -418,6 +419,7 @@ function MapManager(oGame, sMapName){
     this.visible = null;
     
     this.instances = [];
+    this.instancesFront = [];
     this.attack = null;
     
     this.playerAction = false;
@@ -530,7 +532,7 @@ MapManager.prototype.isPlayerCollision = function(x, y){
 };
 
 MapManager.prototype.getInstanceAt = function(x, y){
-    for (var i=this.instances.length-1;i>=0;i++){
+    for (var i=this.instances.length-1;i>=0;i--){
         var ep = this.instances[i];
         
         if (ep.position.equals(x, y)){
@@ -539,6 +541,11 @@ MapManager.prototype.getInstanceAt = function(x, y){
     }
     
     return null;
+};
+
+MapManager.prototype.createFloatText = function(sText, oPosition){
+    var fText = new FloatText(this, oPosition, sText, this.game.sprites.f_font, 30, true);
+    this.instancesFront.push(fText);
 };
 
 MapManager.prototype.createAttack = function(oAnimation, target){
@@ -669,8 +676,9 @@ MapManager.prototype.update = function(){
     
     this.drawMap();
     
+    var ins;
     for (var i=0,len=this.instances.length;i<len;i++){
-        var ins = this.instances[i];
+        ins = this.instances[i];
         if (ins.destroyed){
             this.instances.splice(i, 1);
             len = this.instances.length;
@@ -684,13 +692,26 @@ MapManager.prototype.update = function(){
     
     this.player.draw(ctx, this.view);
     
+    for (i=0,len=this.instancesFront.length;i<len;i++){
+        ins = this.instancesFront[i];
+        if (ins.destroyed){
+            this.instancesFront.splice(i, 1);
+            len = this.instancesFront.length;
+            i--;
+            continue;
+        }
+        
+        this.instancesFront[i].update();
+        this.instancesFront[i].draw(ctx, this.view);
+    }
+    
     if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
         this.attack = null;
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;
     }
 };
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":15}],11:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_FloatText":8,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":15}],11:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
@@ -750,6 +771,17 @@ Player.prototype.attackTo = function(oEnemy){
     }), oEnemy );
 };
 
+Player.prototype.pickItem = function(oItem){
+    var m = Math;
+    var dx = m.abs(oItem.position.x - this.position.x);
+    var dy = m.abs(oItem.position.y - this.position.y);
+    
+    if (dx > 0 || dy > 0){
+        this.game.console.addMessage("Out of range");
+        return;
+    }
+};
+
 Player.prototype.checkAction = function(){
     var Input = KT.Input;
     
@@ -757,12 +789,13 @@ Player.prototype.checkAction = function(){
         var mp = Input.mouse.position;
         
         var m = Math;
-        var mx = m.floor(mp.x / 32) + (this.mapManager.view.x << 0);
-        var my = m.floor(mp.y / 32) + (this.mapManager.view.y << 0);
+        var mx = m.floor(mp.x / 32 + this.mapManager.view.x);
+        var my = m.floor(mp.y / 32 + this.mapManager.view.y);
         
         var instance = this.mapManager.getInstanceAt(mx, my);
         if (instance){
             if (instance._enemy) this.attackTo(instance);
+            if (instance._item) this.pickItem(instance);
         }
         
         this.doAct();
@@ -790,7 +823,6 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
-var FloatText = require('./g_FloatText');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
@@ -891,11 +923,6 @@ Underworld.prototype.rollDice = function(sDice){
     return result;
 };
 
-Underworld.prototype.createFloatText = function(sText, oPosition){
-    var fText = new FloatText(this.map, oPosition, sText, this.sprites.f_font, 30, true);
-    this.map.instances.push(fText);
-};
-
 Underworld.prototype.loopGame = function(){
     var nowDate = (new Date()).getTime();
     var delta = nowDate - this.lastFrame;
@@ -941,7 +968,7 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
-},{"./d_PlayerStats":3,"./g_Console":6,"./g_FloatText":8,"./g_MapManager":10,"./kt_Kramtech":15}],13:[function(require,module,exports){
+},{"./d_PlayerStats":3,"./g_Console":6,"./g_MapManager":10,"./kt_Kramtech":15}],13:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");

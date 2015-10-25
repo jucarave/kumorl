@@ -2,7 +2,6 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
-var FloatText = require('./g_FloatText');
 
 function Underworld(elDiv){
     this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
@@ -101,11 +100,6 @@ Underworld.prototype.rollDice = function(sDice){
     }
     
     return result;
-};
-
-Underworld.prototype.createFloatText = function(sText, oPosition){
-    var fText = new FloatText(this.map, oPosition, sText, this.sprites.f_font, 30, true);
-    this.map.instances.push(fText);
 };
 
 Underworld.prototype.loopGame = function(){

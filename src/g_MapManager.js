@@ -4,6 +4,7 @@ var Enemy = require('./g_Enemy');
 var EnemyFactory = require('./d_EnemyFactory');
 var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
+var FloatText = require('./g_FloatText');
 
 function MapManager(oGame, sMapName){
     this.game = oGame;
@@ -14,6 +15,7 @@ function MapManager(oGame, sMapName){
     this.visible = null;
     
     this.instances = [];
+    this.instancesFront = [];
     this.attack = null;
     
     this.playerAction = false;
@@ -126,7 +128,7 @@ MapManager.prototype.isPlayerCollision = function(x, y){
 };
 
 MapManager.prototype.getInstanceAt = function(x, y){
-    for (var i=this.instances.length-1;i>=0;i++){
+    for (var i=this.instances.length-1;i>=0;i--){
         var ep = this.instances[i];
         
         if (ep.position.equals(x, y)){
@@ -135,6 +137,11 @@ MapManager.prototype.getInstanceAt = function(x, y){
     }
     
     return null;
+};
+
+MapManager.prototype.createFloatText = function(sText, oPosition){
+    var fText = new FloatText(this, oPosition, sText, this.game.sprites.f_font, 30, true);
+    this.instancesFront.push(fText);
 };
 
 MapManager.prototype.createAttack = function(oAnimation, target){
@@ -265,8 +272,9 @@ MapManager.prototype.update = function(){
     
     this.drawMap();
     
+    var ins;
     for (var i=0,len=this.instances.length;i<len;i++){
-        var ins = this.instances[i];
+        ins = this.instances[i];
         if (ins.destroyed){
             this.instances.splice(i, 1);
             len = this.instances.length;
@@ -279,6 +287,19 @@ MapManager.prototype.update = function(){
     }
     
     this.player.draw(ctx, this.view);
+    
+    for (i=0,len=this.instancesFront.length;i<len;i++){
+        ins = this.instancesFront[i];
+        if (ins.destroyed){
+            this.instancesFront.splice(i, 1);
+            len = this.instancesFront.length;
+            i--;
+            continue;
+        }
+        
+        this.instancesFront[i].update();
+        this.instancesFront[i].draw(ctx, this.view);
+    }
     
     if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
         this.attack = null;

@@ -17,13 +17,13 @@ Enemy.prototype.receiveDamage = function(iDmg){
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){
-        this.game.createFloatText('Blocked', this.position.clone());
+        this.mapManager.createFloatText('Blocked', this.position.clone());
         this.game.console.addToLast(", Blocked");
         return;
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.game.createFloatText(dmg + '', this.position.clone());
+    this.mapManager.createFloatText(dmg + '', this.position.clone());
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     

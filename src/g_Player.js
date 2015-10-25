@@ -57,6 +57,17 @@ Player.prototype.attackTo = function(oEnemy){
     }), oEnemy );
 };
 
+Player.prototype.pickItem = function(oItem){
+    var m = Math;
+    var dx = m.abs(oItem.position.x - this.position.x);
+    var dy = m.abs(oItem.position.y - this.position.y);
+    
+    if (dx > 0 || dy > 0){
+        this.game.console.addMessage("Out of range");
+        return;
+    }
+};
+
 Player.prototype.checkAction = function(){
     var Input = KT.Input;
     
@@ -64,12 +75,13 @@ Player.prototype.checkAction = function(){
         var mp = Input.mouse.position;
         
         var m = Math;
-        var mx = m.floor(mp.x / 32) + (this.mapManager.view.x << 0);
-        var my = m.floor(mp.y / 32) + (this.mapManager.view.y << 0);
+        var mx = m.floor(mp.x / 32 + this.mapManager.view.x);
+        var my = m.floor(mp.y / 32 + this.mapManager.view.y);
         
         var instance = this.mapManager.getInstanceAt(mx, my);
         if (instance){
             if (instance._enemy) this.attackTo(instance);
+            if (instance._item) this.pickItem(instance);
         }
         
         this.doAct();
