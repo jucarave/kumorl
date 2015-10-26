@@ -2,7 +2,7 @@ var Vector2 = require('./kt_Vector2.js');
 
 module.exports = {
     items: {
-        sword: {code: 'sword', imageIndex: new Vector2(1, 0)}
+        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0)}
     },
     
     getItem: function(itemCode, amount, status){

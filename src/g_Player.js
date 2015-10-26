@@ -66,6 +66,11 @@ Player.prototype.pickItem = function(oItem){
         this.game.console.addMessage("Out of range");
         return;
     }
+    
+    if (this.partyMember.addItem(oItem.item)){
+        oItem.item = null;
+        oItem.destroyed = true;
+    }
 };
 
 Player.prototype.checkAction = function(){

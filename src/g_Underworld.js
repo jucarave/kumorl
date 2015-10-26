@@ -4,8 +4,13 @@ var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
 
 function Underworld(elDiv){
-    this.canvas = KT.Canvas.createCanvas(854, 480, elDiv);
+    var width = 854;
+    var height = 480;
+    
+    this.canvas = KT.Canvas.createCanvas(width, height, elDiv);
     this.ctx = KT.Canvas.get2DContext(this.canvas);
+    
+    this.mapSurface = this.createSurface(width, height);
     
     KT.Input.listenTo(this.canvas);
     
@@ -62,6 +67,13 @@ Underworld.prototype.loadImages = function(){
     this.sprites.items = KT.Sprite.loadSprite('img/items/sprItems.png', 32, 32);
     
     this.sprites.at_slice = KT.Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
+};
+
+Underworld.prototype.createSurface = function(iWidth, iHeight){
+    var canvas = KT.Canvas.createCanvas(iWidth, iHeight, null);
+    var ctx = KT.Canvas.get2DContext(canvas);
+    
+    return ctx;
 };
 
 Underworld.prototype.checkReadyData = function(){

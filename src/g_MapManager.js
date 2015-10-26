@@ -25,6 +25,8 @@ function MapManager(oGame, sMapName){
     this.view.width = 27;
     this.view.height = 15;
     
+    this.prevView = new KT.Vector2(-1, 0);
+    
     this.ready = false;
     this.loadMap(sMapName);
 }
@@ -48,6 +50,18 @@ MapManager.prototype.parseTilesLocation = function(oTileset){
             ind += 1;
         }
     }
+};
+
+MapManager.prototype.isTilesetReady = function(){
+    if (this.ready == 2) return true;
+    
+    for (var i=0,len=this.game.tileset.length;i<len;i++){
+        var t = this.game.tileset[i];
+        if (!t.sprite.ready) return false;
+    }
+    
+    this.ready = 2;
+    return true;
 };
 
 MapManager.prototype.loadMap = function(sMapName){
@@ -131,7 +145,7 @@ MapManager.prototype.getInstanceAt = function(x, y){
     for (var i=this.instances.length-1;i>=0;i--){
         var ep = this.instances[i];
         
-        if (ep.position.equals(x, y)){
+        if (!ep.destroyed && ep.position.equals(x, y)){
             return ep;
         }
     }
@@ -222,13 +236,22 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
 };
 
 MapManager.prototype.drawMap = function(){
-    var ctx = this.game.ctx;
-    var drawSprite = KT.Canvas.drawSprite;
-    
+    var ctx;
     var m = Math;
     
-    this.view.x = m.max(0, m.min(64, (this.player.position.x - (this.view.width / 2)) ));
-    this.view.y = m.max(0, m.min(64, (this.player.position.y - (this.view.height / 2)) ));
+    this.view.x =  (this.player.position.x - (this.view.width / 2));
+    this.view.y = (this.player.position.y - (this.view.height / 2));
+    
+    if (this.view.equalsVector2(this.prevView) ){
+        ctx = this.game.ctx;
+        ctx.drawImage(this.game.mapSurface.canvas, 0, 0);
+        
+        return;
+    }
+    
+    ctx = this.game.mapSurface;
+    KT.Canvas.clearCanvas(ctx, 'black');
+    var drawSprite = KT.Canvas.drawSprite;
     
     var xx = m.floor(this.view.x);
     var yy = m.floor(this.view.y);
@@ -238,10 +261,11 @@ MapManager.prototype.drawMap = function(){
     ww = m.max(0, m.min(64, ww));
     hh = m.max(0, m.min(64, hh));
     
-    for (var y=yy;y<hh;y++){
-        for (var x=xx;x<ww;x++){
+    for (var y=m.max(yy, 0);y<hh;y++){
+        if (!this.map[y]) continue;
+        for (var x=m.max(xx, 0);x<ww;x++){
             var t = this.map[y][x];
-            if (t == 0) continue;
+            if (t == 0 || t == undefined) continue;
             
             var v = this.visible[y][x];
             if (v == 0) continue;
@@ -263,9 +287,14 @@ MapManager.prototype.drawMap = function(){
             }
         }
     }
+    
+    ctx = this.game.ctx;
+    ctx.drawImage(this.game.mapSurface.canvas, 0, 0);
 };
 
 MapManager.prototype.update = function(){
+    if (!this.isTilesetReady()) return;
+    
     var ctx = this.game.ctx;
     
     this.player.update();
@@ -306,4 +335,6 @@ MapManager.prototype.update = function(){
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;
     }
+    
+    this.prevView.copy(this.view);
 };

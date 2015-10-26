@@ -19,3 +19,10 @@ function PlayerStats(oGame){
 }
 
 module.exports = PlayerStats;
+
+PlayerStats.prototype.addItem = function(oItem){
+    this.items.push(oItem);
+    this.game.console.addMessage(oItem.name + " picked!");
+    
+    return true;
+};
