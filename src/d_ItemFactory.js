@@ -2,7 +2,9 @@ var Vector2 = require('./kt_Vector2.js');
 
 module.exports = {
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0)}
+        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon'},
+        
+        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc'}
     },
     
     getItem: function(itemCode, amount, status){
@@ -14,8 +16,8 @@ module.exports = {
             ret[i] = item[i];
         }
         
-        ret.amount = amount;
-        ret.status = status;
+        if (item.type != 'misc') ret.amount = amount;
+        if (item.type == 'weapon') ret.status = status;
         
         return ret;
     }

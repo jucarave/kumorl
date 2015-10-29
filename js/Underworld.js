@@ -22,7 +22,9 @@ var Vector2 = require('./kt_Vector2.js');
 
 module.exports = {
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0)}
+        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon'},
+        
+        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc'}
     },
     
     getItem: function(itemCode, amount, status){
@@ -34,8 +36,8 @@ module.exports = {
             ret[i] = item[i];
         }
         
-        ret.amount = amount;
-        ret.status = status;
+        if (item.type != 'misc') ret.amount = amount;
+        if (item.type == 'weapon') ret.status = status;
         
         return ret;
     }
@@ -380,7 +382,7 @@ FloatText.prototype.update = function(){
 },{"./kt_Kramtech":15}],9:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
-function Item(oMapManager, oPosition, oItem){
+function Item(oMapManager, oPosition, oItem, aParams){
     this.mapManager = oMapManager;
     this.sprite = oMapManager.game.sprites.items;
     this.position = oPosition;
@@ -388,9 +390,33 @@ function Item(oMapManager, oPosition, oItem){
     
     this.destroyed = false;
     this._item = true;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 4;
+    
+    this.parseParams(aParams);
 }
 
 module.exports = Item;
+
+Item.prototype.parseParams = function(aParams){
+    if (!aParams) return;
+    
+    for (var i=0,len=aParams.length;i<len;i++){
+        var par = aParams[i];
+        
+        if (par.type == 'light'){
+            var lightPos = this.position.clone();
+            if (par.dir == 'D') lightPos.sum(0, 1);
+            else if (par.dir == 'R') lightPos.sum(1, 0);
+            else if (par.dir == 'U') lightPos.sum(0, -1);
+            else if (par.dir == 'L') lightPos.sum(-1, 0);
+            
+            this.mapManager.castLight(lightPos, 7);
+            this.mapManager.lights.push(lightPos);
+        }
+    }
+};
 
 Item.prototype.draw = function(oCtx, oView){
     if (this.destroyed) return;
@@ -402,11 +428,16 @@ Item.prototype.draw = function(oCtx, oView){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > oView.width || vy > oView.height) return;
     
-    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.item.imageIndex.x, this.item.imageIndex.y);
+    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.item.imageIndex.x + this.imageIndex, this.item.imageIndex.y);
 };
 
 Item.prototype.update = function(){
-    
+    if (this.item.imageNum){
+        this.imageIndex += this.imageSpeed;
+        if (this.imageIndex >= this.item.imageNum){
+            this.imageIndex = 0;
+        }
+    }
 };
 },{"./kt_Kramtech":15}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
@@ -427,6 +458,7 @@ function MapManager(oGame, sMapName){
     
     this.instances = [];
     this.instancesFront = [];
+    this.lights = [];
     this.attack = null;
     
     this.playerAction = false;
@@ -495,7 +527,7 @@ MapManager.prototype.loadMap = function(sMapName){
         
         for (var i=0,len=map.items.length;i<len;i++){
             var item = map.items[i];
-            thus.instances.push(new Item(thus, new KT.Vector2(item.x, item.y), ItemFactory.getItem('sword', 1, 1)));
+            thus.instances.push(new Item(thus, new KT.Vector2(item.x, item.y), ItemFactory.getItem(item.item, item.amount, item.status), item.params));
         }
         
         thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
@@ -575,12 +607,63 @@ MapManager.prototype.createAttack = function(oAnimation, target){
     this.attack.target = target;
 };
 
+MapManager.prototype.inView = function(oPosition){
+    var vx = oPosition.x - this.view.x;
+    var vy = oPosition.y - this.view.y;
+    
+    if (vx + 1 < 0 || vy + 1 < 0) return false;
+    if (vx > this.view.width || vy > this.view.height) return false;
+    
+    return true;
+};
+
 MapManager.prototype.clearVisibleMap = function(){
     for (var y=0;y<64;y++){
         for (var x=0;x<64;x++){
             if (this.visible[y][x] >= 2){
                 this.visible[y][x] = 1;
             }
+        }
+    }
+    
+    var m = Math;
+    var thus = this;
+    var raycast = function(rx, ry, ang, lx, ly){
+        var dx = m.abs(rx - lx);
+        var dy = m.abs(ry - ly);
+        
+        if (dx >= thus.view.width / 2 + 2 || dy >= thus.view.height / 2 + 2)
+            return false;
+        
+        var cos = m.cos(ang);
+        var sin = m.sin(ang);
+        
+        var search = true;
+        while (search){
+            var cx = rx << 0;
+            var cy = ry << 0;
+                
+            if (thus.isSolid(cx, cy)){
+                return false;
+            }else if (lx == cx && ly == cy){
+                return true;
+            }
+                
+            rx += cos;
+            ry -= sin;
+        }  
+    };
+    
+    var rx = this.player.position.x + 0.5;
+    var ry = this.player.position.y + 0.5;
+    for (var i=0,len=this.lights.length;i<len;i++){
+        var light = this.lights[i];
+        if (!this.inView(light)) continue;
+        
+        var ang = KT.Utils.get2DAngle(rx, ry, light.x + 0.5, light.y + 0.5);
+        
+        if (raycast(rx, ry, ang, light.x, light.y)){
+            this.castLight(light, 7);
         }
     }
 };
@@ -606,7 +689,13 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
             var cy = ry << 0;
                 
             var dim = m.max(j - 1, 0);
-            thus.visible[cy][cx] = 2 + dim;
+            
+            if (thus.visible[cy][cx] >= 2){
+                thus.visible[cy][cx] = m.min(thus.visible[cy][cx], 2 + dim);
+            }else{
+                thus.visible[cy][cx] = 2 + dim;
+            }
+            
             if (thus.isSolid(cx, cy)){
                 j = iDistance;
                 continue;

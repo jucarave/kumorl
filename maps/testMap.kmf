@@ -23,7 +23,17 @@
             "item": "sword",
             "x": 5,
             "y": 2,
-            "amout": 1
+            "amout": 1,
+            "status": 1
+        },
+        
+        {
+            "item": "torch",
+            "x": 7,
+            "y": 1,
+            "params": [
+                { "type": "light", "dir": "D" }
+            ]
         }
     ],
 
