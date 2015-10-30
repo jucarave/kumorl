@@ -11,6 +11,7 @@ function Underworld(elDiv){
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
     this.mapSurface = this.createSurface(width, height);
+    this.autoMapSurface = this.createSurface(134, 134);
     
     KT.Input.listenTo(this.canvas);
     
@@ -60,6 +61,8 @@ Underworld.prototype.loadImages = function(){
     var centerOr = new KT.Vector2(16, 16);
     
     this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
+    this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
     
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
@@ -128,11 +131,16 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
+Underworld.prototype.drawUI = function(){
+    this.map.drawAutoMap(712, 338);
+};
+
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
+    this.drawUI();
     
     this.console.render(this.ctx, 16, 16);
 };

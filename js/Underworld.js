@@ -735,6 +735,35 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
     }
 };
 
+MapManager.prototype.drawAutoMap = function(x, y){
+    var ctx;
+    
+    if (this.view.equalsVector2(this.prevView) ){
+        ctx = this.game.ctx;
+        ctx.drawImage(this.game.autoMapSurface.canvas, x, y);
+        
+        return;
+    }
+    
+    ctx = this.game.autoMapSurface;
+    KT.Canvas.drawSprite(ctx, this.game.sprites.ui_map, 0, 0, 0, 0);
+    
+    ctx.fillStyle = "rgb(51,47,32)";
+    for (var yy=0;yy<64;yy++){
+        for (var xx=0;xx<64;xx++){
+            if (this.isSolid(xx, yy) && this.visible[yy][xx] > 0){
+                ctx.fillRect(xx*2,yy*2,2,2);
+            }
+        }
+    }
+    
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.player.position.x * 2, this.player.position.y * 2, 2, 2);
+    
+    ctx = this.game.ctx;
+    ctx.drawImage(this.game.autoMapSurface.canvas, x, y);
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx;
     var m = Math;
@@ -797,6 +826,8 @@ MapManager.prototype.update = function(){
     
     var ctx = this.game.ctx;
     
+    this.prevView.copy(this.view);
+    
     this.player.update();
     
     this.drawMap();
@@ -836,7 +867,7 @@ MapManager.prototype.update = function(){
         this.playerAction = false;
     }
     
-    this.prevView.copy(this.view);
+    
 };
 },{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_FloatText":8,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":15}],11:[function(require,module,exports){
 var Actor = require('./g_Actor');
@@ -964,6 +995,7 @@ function Underworld(elDiv){
     this.ctx = KT.Canvas.get2DContext(this.canvas);
     
     this.mapSurface = this.createSurface(width, height);
+    this.autoMapSurface = this.createSurface(134, 134);
     
     KT.Input.listenTo(this.canvas);
     
@@ -1013,6 +1045,8 @@ Underworld.prototype.loadImages = function(){
     var centerOr = new KT.Vector2(16, 16);
     
     this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
+    this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
     
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
@@ -1081,11 +1115,16 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
+Underworld.prototype.drawUI = function(){
+    this.map.drawAutoMap(712, 338);
+};
+
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
+    this.drawUI();
     
     this.console.render(this.ctx, 16, 16);
 };
@@ -1368,6 +1407,9 @@ module.exports = {
         img.origin = (oParams.origin)? oParams.origin : new Vector2(0, 0);
         
         Utils.addEvent(img, "load", function(){
+            if (!img.sprWidth) img.sprWidth = img.width;
+            if (!img.sprHeight) img.sprHeight = img.height;
+            
            img.hNum = img.width / img.sprWidth; 
            img.vNum = img.height / img.sprHeight;
            img.ready = true;

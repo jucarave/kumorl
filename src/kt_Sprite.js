@@ -14,6 +14,9 @@ module.exports = {
         img.origin = (oParams.origin)? oParams.origin : new Vector2(0, 0);
         
         Utils.addEvent(img, "load", function(){
+            if (!img.sprWidth) img.sprWidth = img.width;
+            if (!img.sprHeight) img.sprHeight = img.height;
+            
            img.hNum = img.width / img.sprWidth; 
            img.vNum = img.height / img.sprHeight;
            img.ready = true;

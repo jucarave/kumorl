@@ -293,6 +293,35 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
     }
 };
 
+MapManager.prototype.drawAutoMap = function(x, y){
+    var ctx;
+    
+    if (this.view.equalsVector2(this.prevView) ){
+        ctx = this.game.ctx;
+        ctx.drawImage(this.game.autoMapSurface.canvas, x, y);
+        
+        return;
+    }
+    
+    ctx = this.game.autoMapSurface;
+    KT.Canvas.drawSprite(ctx, this.game.sprites.ui_map, 0, 0, 0, 0);
+    
+    ctx.fillStyle = "rgb(51,47,32)";
+    for (var yy=0;yy<64;yy++){
+        for (var xx=0;xx<64;xx++){
+            if (this.isSolid(xx, yy) && this.visible[yy][xx] > 0){
+                ctx.fillRect(xx*2,yy*2,2,2);
+            }
+        }
+    }
+    
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.player.position.x * 2, this.player.position.y * 2, 2, 2);
+    
+    ctx = this.game.ctx;
+    ctx.drawImage(this.game.autoMapSurface.canvas, x, y);
+};
+
 MapManager.prototype.drawMap = function(){
     var ctx;
     var m = Math;
@@ -355,6 +384,8 @@ MapManager.prototype.update = function(){
     
     var ctx = this.game.ctx;
     
+    this.prevView.copy(this.view);
+    
     this.player.update();
     
     this.drawMap();
@@ -394,5 +425,5 @@ MapManager.prototype.update = function(){
         this.playerAction = false;
     }
     
-    this.prevView.copy(this.view);
+    
 };
