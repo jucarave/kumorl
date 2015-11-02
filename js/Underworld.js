@@ -135,6 +135,8 @@ Actor.prototype.finishMovement = function(){
     this.position.copy(this.target);
     this.position.z = 0;
     this.target.set(-1, 0);
+    
+    if (this.afterMovement) this.afterMovement();
 };
 
 Actor.prototype.updateMovement = function(){
@@ -455,6 +457,7 @@ function MapManager(oGame, sMapName){
     this.player = null;
     this.map = null;
     this.visible = null;
+    this.cleared = false;
     
     this.instances = [];
     this.instancesFront = [];
@@ -666,6 +669,8 @@ MapManager.prototype.clearVisibleMap = function(){
             this.castLight(light, 7);
         }
     }
+    
+    this.cleared = true;
 };
 
 MapManager.prototype.castLight = function(oPosition, iDistance){
@@ -771,7 +776,7 @@ MapManager.prototype.drawMap = function(){
     this.view.x =  (this.player.position.x - (this.view.width / 2));
     this.view.y = (this.player.position.y - (this.view.height / 2));
     
-    if (this.view.equalsVector2(this.prevView) ){
+    if (this.view.equalsVector2(this.prevView) && !this.playerAction && !this.cleared){
         ctx = this.game.ctx;
         ctx.drawImage(this.game.mapSurface.canvas, 0, 0);
         
@@ -807,7 +812,7 @@ MapManager.prototype.drawMap = function(){
             drawSprite(ctx, sprite, cx, cy, loc.x, loc.y);
             
             if (v == 1){
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillStyle = "rgba(4,4,15,0.7)";
                 ctx.fillRect(cx,cy,32,32);
             }else if (v > 2){
                 var a = (v - 1) / 15;
@@ -819,6 +824,8 @@ MapManager.prototype.drawMap = function(){
     
     ctx = this.game.ctx;
     ctx.drawImage(this.game.mapSurface.canvas, 0, 0);
+    
+    this.cleared = false;
 };
 
 MapManager.prototype.update = function(){
@@ -888,6 +895,14 @@ module.exports = Player;
 Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
     
+    var position = this.position;
+    if (this.target.x != -1) position = this.target;
+    
+    this.mapManager.clearVisibleMap();
+    this.mapManager.castLight(position, 5);
+};
+
+Player.prototype.afterMovement = function(){
     var position = this.position;
     if (this.target.x != -1) position = this.target;
     

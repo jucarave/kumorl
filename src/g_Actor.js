@@ -61,6 +61,8 @@ Actor.prototype.finishMovement = function(){
     this.position.copy(this.target);
     this.position.z = 0;
     this.target.set(-1, 0);
+    
+    if (this.afterMovement) this.afterMovement();
 };
 
 Actor.prototype.updateMovement = function(){

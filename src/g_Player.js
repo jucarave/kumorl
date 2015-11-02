@@ -23,6 +23,14 @@ Player.prototype.doAct = function(){
     this.mapManager.castLight(position, 5);
 };
 
+Player.prototype.afterMovement = function(){
+    var position = this.position;
+    if (this.target.x != -1) position = this.target;
+    
+    this.mapManager.clearVisibleMap();
+    this.mapManager.castLight(position, 5);
+};
+
 Player.prototype.checkMovement = function(){
     var Input = KT.Input;
     
