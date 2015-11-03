@@ -63,6 +63,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
     
     this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
+    this.sprites.ui_inventory = KT.Sprite.loadSprite('img/ui/sprInventory.png');
     
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
@@ -132,7 +133,34 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.drawUI = function(){
+    this.console.render(this.ctx, 16, 16);
+    
     this.map.drawAutoMap(712, 338);
+    
+    var player = this.party[0];
+    var Canvas = KT.Canvas;
+    
+    Canvas.drawSpriteText(this.ctx, player.name, this.sprites.f_font, 16, 440);
+    
+    var hp = player.hp / player.mHp;
+    this.ctx.fillStyle = 'rgb(60,0,0)';
+    this.ctx.fillRect(16, 454, 100, 5);
+    this.ctx.fillStyle = 'rgb(122,0,0)';
+    this.ctx.fillRect(16, 454, 100 * hp, 5);
+    
+    if (player.mMp > 0){
+        var mp = player.mp / player.mMp;
+        this.ctx.fillStyle = 'rgb(45,80,100)';
+        this.ctx.fillRect(16, 462, 80, 3);
+        this.ctx.fillStyle = 'rgb(90,155,200)';
+        this.ctx.fillRect(16, 462, 80 * mp, 3);
+    }
+    
+    Canvas.drawSprite(this.ctx, this.sprites.ui_inventory, 237, 432, 0, 0);
+    for (var i=0,len=player.items.length;i<len;i++){
+        var item = player.items[i];
+        Canvas.drawSprite(this.ctx, this.sprites.items, 240 + (i * 39), 435, item.imageIndex.x, item.imageIndex.y);
+    }
 };
 
 Underworld.prototype.update = function(){
@@ -141,8 +169,6 @@ Underworld.prototype.update = function(){
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
     this.drawUI();
-    
-    this.console.render(this.ctx, 16, 16);
 };
 
 KT.Utils.addEvent(window, 'load', function(){
@@ -167,3 +193,10 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
+
+String.vowels = ['a', 'e', 'i', 'o', 'u'];
+String.prototype.startsOnVowel = function(){
+    var fl = this[0];
+    
+    return (String.vowels.indexOf(fl) != -1);
+};

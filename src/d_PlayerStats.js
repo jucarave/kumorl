@@ -1,13 +1,13 @@
 function PlayerStats(oGame){
     this.game = oGame;
     
-    this.name = '';
+    this.name = 'Kram';
     this.level = 1;
     this.exp = 0;
-    this.hp = 10;
+    this.hp = 8;
     this.mHp = 10;
-    this.mp = 0;
-    this.mMp = 0;
+    this.mp = 3;
+    this.mMp = 5;
     
     this.atk = '2D3';
     this.dfs = '2D3';

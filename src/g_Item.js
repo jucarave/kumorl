@@ -8,6 +8,7 @@ function Item(oMapManager, oPosition, oItem, aParams){
     
     this.destroyed = false;
     this._item = true;
+    this.solid = this.item.solid;
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;

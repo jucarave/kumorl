@@ -26,7 +26,12 @@
             "amout": 1,
             "status": 1
         },
-        
+        {
+            "item": "potion",
+            "x": 6,
+            "y": 2,
+            "amout": 1
+        },
         {
             "item": "torch",
             "x": 7,

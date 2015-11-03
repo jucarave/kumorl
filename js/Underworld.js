@@ -22,9 +22,11 @@ var Vector2 = require('./kt_Vector2.js');
 
 module.exports = {
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon'},
+        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc'}
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item' },
+        
+        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
     
     getItem: function(itemCode, amount, status){
@@ -40,19 +42,33 @@ module.exports = {
         if (item.type == 'weapon') ret.status = status;
         
         return ret;
+    },
+    
+    getStatusName: function(fStatus){
+        if (fStatus >= 0.8){
+            return 'excelent';
+        }else if (fStatus >= 0.6){
+            return 'serviceable';
+        }else if (fStatus >= 0.4){
+            return 'worn';
+        }else if (fStatus >= 0.2){
+            return 'badly worn';
+        }else{
+            return 'ruined';
+        }
     }
 };
 },{"./kt_Vector2.js":18}],3:[function(require,module,exports){
 function PlayerStats(oGame){
     this.game = oGame;
     
-    this.name = '';
+    this.name = 'Kram';
     this.level = 1;
     this.exp = 0;
-    this.hp = 10;
+    this.hp = 8;
     this.mHp = 10;
-    this.mp = 0;
-    this.mMp = 0;
+    this.mp = 3;
+    this.mMp = 5;
     
     this.atk = '2D3';
     this.dfs = '2D3';
@@ -392,6 +408,7 @@ function Item(oMapManager, oPosition, oItem, aParams){
     
     this.destroyed = false;
     this._item = true;
+    this.solid = this.item.solid;
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
@@ -813,11 +830,11 @@ MapManager.prototype.drawMap = function(){
             
             if (v == 1){
                 ctx.fillStyle = "rgba(4,4,15,0.7)";
-                ctx.fillRect(cx,cy,32,32);
+                ctx.fillRect(cx << 0,cy << 0,32,32);
             }else if (v > 2){
                 var a = (v - 1) / 15;
                 ctx.fillStyle = "rgba(0,0,0," + a + ")";
-                ctx.fillRect(cx,cy,32,32);
+                ctx.fillRect(cx << 0,cy << 0,32,32);
             }
         }
     }
@@ -880,6 +897,7 @@ MapManager.prototype.update = function(){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
+var ItemFactory = require('./d_ItemFactory');
 
 function Player(oMapManager, oSprite, oPosition, oPartyMember){
     Actor.call(this, oMapManager, oSprite, oPosition);
@@ -945,12 +963,22 @@ Player.prototype.attackTo = function(oEnemy){
 };
 
 Player.prototype.pickItem = function(oItem){
+    if (oItem.item._static) return;
+    
     var m = Math;
     var dx = m.abs(oItem.position.x - this.position.x);
     var dy = m.abs(oItem.position.y - this.position.y);
     
     if (dx > 0 || dy > 0){
-        this.game.console.addMessage("Out of range");
+        var name = oItem.item.name.toLowerCase();
+        if (oItem.item.status !== undefined){
+            name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
+        }
+        
+        var msg = "You see a";
+        if (name.startsOnVowel()){ msg += 'n'; }
+        
+        this.game.console.addMessage(msg + ' ' + name);
         return;
     }
     
@@ -996,7 +1024,7 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":4,"./g_Animation":5,"./kt_Kramtech":15}],12:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./g_Actor":4,"./g_Animation":5,"./kt_Kramtech":15}],12:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
@@ -1062,6 +1090,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
     
     this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
+    this.sprites.ui_inventory = KT.Sprite.loadSprite('img/ui/sprInventory.png');
     
     this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
@@ -1131,7 +1160,34 @@ Underworld.prototype.loopGame = function(){
 };
 
 Underworld.prototype.drawUI = function(){
+    this.console.render(this.ctx, 16, 16);
+    
     this.map.drawAutoMap(712, 338);
+    
+    var player = this.party[0];
+    var Canvas = KT.Canvas;
+    
+    Canvas.drawSpriteText(this.ctx, player.name, this.sprites.f_font, 16, 440);
+    
+    var hp = player.hp / player.mHp;
+    this.ctx.fillStyle = 'rgb(60,0,0)';
+    this.ctx.fillRect(16, 454, 100, 5);
+    this.ctx.fillStyle = 'rgb(122,0,0)';
+    this.ctx.fillRect(16, 454, 100 * hp, 5);
+    
+    if (player.mMp > 0){
+        var mp = player.mp / player.mMp;
+        this.ctx.fillStyle = 'rgb(45,80,100)';
+        this.ctx.fillRect(16, 462, 80, 3);
+        this.ctx.fillStyle = 'rgb(90,155,200)';
+        this.ctx.fillRect(16, 462, 80 * mp, 3);
+    }
+    
+    Canvas.drawSprite(this.ctx, this.sprites.ui_inventory, 237, 432, 0, 0);
+    for (var i=0,len=player.items.length;i<len;i++){
+        var item = player.items[i];
+        Canvas.drawSprite(this.ctx, this.sprites.items, 240 + (i * 39), 435, item.imageIndex.x, item.imageIndex.y);
+    }
 };
 
 Underworld.prototype.update = function(){
@@ -1140,8 +1196,6 @@ Underworld.prototype.update = function(){
     KT.Canvas.clearCanvas(this.ctx, "#000000");
     this.map.update();
     this.drawUI();
-    
-    this.console.render(this.ctx, 16, 16);
 };
 
 KT.Utils.addEvent(window, 'load', function(){
@@ -1166,6 +1220,14 @@ var requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 30);
           };
 })();
+
+String.vowels = ['a', 'e', 'i', 'o', 'u'];
+String.prototype.startsOnVowel = function(){
+    var fl = this[0];
+    
+    return (String.vowels.indexOf(fl) != -1);
+};
+
 },{"./d_PlayerStats":3,"./g_Console":6,"./g_MapManager":10,"./kt_Kramtech":15}],13:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){

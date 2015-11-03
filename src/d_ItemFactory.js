@@ -2,9 +2,11 @@ var Vector2 = require('./kt_Vector2.js');
 
 module.exports = {
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon'},
+        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc'}
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item' },
+        
+        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
     
     getItem: function(itemCode, amount, status){
@@ -20,5 +22,19 @@ module.exports = {
         if (item.type == 'weapon') ret.status = status;
         
         return ret;
+    },
+    
+    getStatusName: function(fStatus){
+        if (fStatus >= 0.8){
+            return 'excelent';
+        }else if (fStatus >= 0.6){
+            return 'serviceable';
+        }else if (fStatus >= 0.4){
+            return 'worn';
+        }else if (fStatus >= 0.2){
+            return 'badly worn';
+        }else{
+            return 'ruined';
+        }
     }
 };

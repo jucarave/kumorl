@@ -1,6 +1,7 @@
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
+var ItemFactory = require('./d_ItemFactory');
 
 function Player(oMapManager, oSprite, oPosition, oPartyMember){
     Actor.call(this, oMapManager, oSprite, oPosition);
@@ -66,12 +67,22 @@ Player.prototype.attackTo = function(oEnemy){
 };
 
 Player.prototype.pickItem = function(oItem){
+    if (oItem.item._static) return;
+    
     var m = Math;
     var dx = m.abs(oItem.position.x - this.position.x);
     var dy = m.abs(oItem.position.y - this.position.y);
     
     if (dx > 0 || dy > 0){
-        this.game.console.addMessage("Out of range");
+        var name = oItem.item.name.toLowerCase();
+        if (oItem.item.status !== undefined){
+            name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
+        }
+        
+        var msg = "You see a";
+        if (name.startsOnVowel()){ msg += 'n'; }
+        
+        this.game.console.addMessage(msg + ' ' + name);
         return;
     }
     

@@ -369,11 +369,11 @@ MapManager.prototype.drawMap = function(){
             
             if (v == 1){
                 ctx.fillStyle = "rgba(4,4,15,0.7)";
-                ctx.fillRect(cx,cy,32,32);
+                ctx.fillRect(cx << 0,cy << 0,32,32);
             }else if (v > 2){
                 var a = (v - 1) / 15;
                 ctx.fillStyle = "rgba(0,0,0," + a + ")";
-                ctx.fillRect(cx,cy,32,32);
+                ctx.fillRect(cx << 0,cy << 0,32,32);
             }
         }
     }
