@@ -2,6 +2,7 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
+var UI = require('./g_UI');
 
 function Underworld(elDiv){
     var width = 854;
@@ -132,43 +133,15 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
-Underworld.prototype.drawUI = function(){
-    this.console.render(this.ctx, 16, 16);
-    
-    this.map.drawAutoMap(712, 338);
-    
-    var player = this.party[0];
-    var Canvas = KT.Canvas;
-    
-    Canvas.drawSpriteText(this.ctx, player.name, this.sprites.f_font, 16, 440);
-    
-    var hp = player.hp / player.mHp;
-    this.ctx.fillStyle = 'rgb(60,0,0)';
-    this.ctx.fillRect(16, 454, 100, 5);
-    this.ctx.fillStyle = 'rgb(122,0,0)';
-    this.ctx.fillRect(16, 454, 100 * hp, 5);
-    
-    if (player.mMp > 0){
-        var mp = player.mp / player.mMp;
-        this.ctx.fillStyle = 'rgb(45,80,100)';
-        this.ctx.fillRect(16, 462, 80, 3);
-        this.ctx.fillStyle = 'rgb(90,155,200)';
-        this.ctx.fillRect(16, 462, 80 * mp, 3);
-    }
-    
-    Canvas.drawSprite(this.ctx, this.sprites.ui_inventory, 237, 432, 0, 0);
-    for (var i=0,len=player.items.length;i<len;i++){
-        var item = player.items[i];
-        Canvas.drawSprite(this.ctx, this.sprites.items, 240 + (i * 39), 435, item.imageIndex.x, item.imageIndex.y);
-    }
-};
-
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
+    
+    UI.checkAction(this);
     this.map.update();
-    this.drawUI();
+    
+    UI.drawUI(this);
 };
 
 KT.Utils.addEvent(window, 'load', function(){

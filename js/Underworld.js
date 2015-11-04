@@ -24,7 +24,7 @@ module.exports = {
     items: {
         sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item' },
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true },
         
         torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -58,7 +58,7 @@ module.exports = {
         }
     }
 };
-},{"./kt_Vector2.js":18}],3:[function(require,module,exports){
+},{"./kt_Vector2.js":19}],3:[function(require,module,exports){
 function PlayerStats(oGame){
     this.game = oGame;
     
@@ -76,16 +76,53 @@ function PlayerStats(oGame){
     this.luk = '2D3';
     this.int = '2D3';
     
-    this.items = [];
+    this.items = new Array(10);
 }
 
 module.exports = PlayerStats;
 
 PlayerStats.prototype.addItem = function(oItem){
-    this.items.push(oItem);
-    this.game.console.addMessage(oItem.name + " picked!");
+    for (var i=0;i<10;i++){
+        if (this.items[i]){
+            var name = oItem.name;
+            oItem = this.addItemToSlot(oItem, i);
+            if (!oItem){
+                this.game.console.addMessage(name + " picked!");
+                return true;
+            }else{
+                continue;
+            }
+        }
+        
+        this.items[i] = oItem;
+        this.game.console.addMessage(oItem.name + " picked!");
+        
+        return true;
+    }
     
-    return true;
+    return false;
+};
+
+PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
+    if (!this.items[iSlot]){
+        this.items[iSlot] = oItem;
+        return null;
+    }
+    
+    if (oItem.stack && this.items[iSlot].code == oItem.code && this.items[iSlot].amount < 5){
+        if (this.items[iSlot].amount + oItem.amount <= 5){
+            this.items[iSlot].amount += oItem.amount;
+            
+            return null;
+        }else{
+            oItem.amount -= (5 - this.items[iSlot].amount);
+            this.items[iSlot].amount = 5;
+            
+            return oItem;
+        }
+    }
+    
+    return oItem;
 };
 },{}],4:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
@@ -195,7 +232,7 @@ Actor.prototype.update = function(){
     
     this.updateMovement();
 };
-},{"./kt_Kramtech":15}],5:[function(require,module,exports){
+},{"./kt_Kramtech":16}],5:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
@@ -235,7 +272,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":15}],6:[function(require,module,exports){
+},{"./kt_Kramtech":16}],6:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -284,7 +321,7 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":15}],7:[function(require,module,exports){
+},{"./kt_Kramtech":16}],7:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var KT = require('./kt_Kramtech');
 
@@ -350,7 +387,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":4,"./kt_Kramtech":15}],8:[function(require,module,exports){
+},{"./g_Actor":4,"./kt_Kramtech":16}],8:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
@@ -397,7 +434,7 @@ FloatText.prototype.update = function(){
 };
 
 
-},{"./kt_Kramtech":15}],9:[function(require,module,exports){
+},{"./kt_Kramtech":16}],9:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Item(oMapManager, oPosition, oItem, aParams){
@@ -458,7 +495,7 @@ Item.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":15}],10:[function(require,module,exports){
+},{"./kt_Kramtech":16}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
@@ -893,7 +930,7 @@ MapManager.prototype.update = function(){
     
     
 };
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_FloatText":8,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":15}],11:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_FloatText":8,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":16}],11:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
@@ -991,7 +1028,7 @@ Player.prototype.pickItem = function(oItem){
 Player.prototype.checkAction = function(){
     var Input = KT.Input;
     
-    if (Input.isMousePressed()){
+    if (Input.isMouseDown()){
         var mp = Input.mouse.position;
         
         var m = Math;
@@ -1004,6 +1041,7 @@ Player.prototype.checkAction = function(){
             if (instance._item) this.pickItem(instance);
         }
         
+        Input.mouse.status = 2;
         this.doAct();
     }
 };
@@ -1024,11 +1062,148 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_ItemFactory":2,"./g_Actor":4,"./g_Animation":5,"./kt_Kramtech":15}],12:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./g_Actor":4,"./g_Animation":5,"./kt_Kramtech":16}],12:[function(require,module,exports){
+var KT = require('./kt_Kramtech.js');
+var ItemFactory = require('./d_ItemFactory');
+
+module.exports = {
+    drag: null,
+    
+    drawoPlayerStats: function(oGame, oPlayer){
+        var Canvas = KT.Canvas;
+        
+        Canvas.drawSpriteText(oGame.ctx, oPlayer.name, oGame.sprites.f_font, 16, 440);
+        
+        var hp = oPlayer.hp / oPlayer.mHp;
+        oGame.ctx.fillStyle = 'rgb(60,0,0)';
+        oGame.ctx.fillRect(16, 454, 100, 5);
+        oGame.ctx.fillStyle = 'rgb(122,0,0)';
+        oGame.ctx.fillRect(16, 454, 100 * hp, 5);
+        
+        if (oPlayer.mMp > 0){
+            var mp = oPlayer.mp / oPlayer.mMp;
+            oGame.ctx.fillStyle = 'rgb(45,80,100)';
+            oGame.ctx.fillRect(16, 462, 80, 3);
+            oGame.ctx.fillStyle = 'rgb(90,155,200)';
+            oGame.ctx.fillRect(16, 462, 80 * mp, 3);
+        }
+    },
+    
+    drawInventory: function(oGame, oPlayer){
+        var Canvas = KT.Canvas;
+        Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_inventory, 237, 432, 0, 0);
+        
+        var item;
+        for (var i=0,len=oPlayer.items.length;i<len;i++){
+            item = oPlayer.items[i];
+            if (!item) continue;
+            
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, 240 + (i * 38), 435, item.imageIndex.x, item.imageIndex.y);
+            
+            if (item.stack && item.amount > 1){
+                Canvas.drawSpriteText(oGame.ctx, item.amount + "", oGame.sprites.f_font, 243 + (i * 38), 438);
+            }
+        }
+        
+        if (this.drag){
+            item = this.drag.item;
+            var pos = KT.Input.mouse.position;
+            
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, pos.x - this.drag.anchor.x + 3, pos.y - this.drag.anchor.y + 3, item.imageIndex.x, item.imageIndex.y);
+        }
+    },
+    
+    drawUI: function(oGame){
+        oGame.console.render(oGame.ctx, 16, 16);
+    
+        oGame.map.drawAutoMap(712, 338);
+        var player = oGame.party[0];
+        
+        this.drawoPlayerStats(oGame, player);
+        this.drawInventory(oGame, player);
+    },
+    
+    pickFromInventory: function(oGame, oPlayer){
+        var pos = KT.Input.mouse.position;
+        
+        var slot = ((pos.x - 237) / 38) << 0;
+        var item = oPlayer.items[slot];
+        
+        if (!item){ return; }
+        
+        var name = item.name.toLowerCase();
+        if (item.status !== undefined){
+            name = ItemFactory.getStatusName(item.status) + ' ' + name;
+        }
+        
+        var msg = "A";
+        if (name.startsOnVowel()){ msg += 'n'; }
+        
+        oGame.console.addMessage(msg + ' ' + name);
+        KT.Input.mouse.status = 2;
+        
+        if (item.stack && item.amount > 1){
+            var oldItem = item;
+            item = {};
+            
+            for (var i in oldItem){
+                item[i] = oldItem[i];
+            }
+            
+            item.amount = 1;
+            oldItem.amount -= 1;
+        }else{
+            oPlayer.items[slot] = null;
+        }
+        
+        this.drag = {
+            item: item,
+            anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
+            slot: slot
+        };
+    },
+    
+    releaseDrag: function(oGame, oPlayer){
+        var pos = KT.Input.mouse.position;
+        var slot = ((pos.x - 237) / 38) << 0;
+        
+        var item = oPlayer.addItemToSlot(this.drag.item, slot);
+        if (item){
+            item = oPlayer.addItemToSlot(this.drag.item, this.drag.slot);
+            if (item) throw "Da fuq";
+        }
+        
+        this.drag = null;
+    },
+    
+    checkAction: function(oGame){
+        var Input = KT.Input;
+        var player = oGame.party[0];
+        var pos = Input.mouse.position;
+        
+        var onInventory = (pos.x >= 237 && pos.y >= 432 && pos.x < 617 && pos.y < 470);
+        
+        if (!this.drag && Input.isMouseDown() && onInventory){
+            this.pickFromInventory(oGame, player);
+        }
+        
+        if (this.drag != null && Input.isMouseUp()){
+            if (onInventory){
+                this.releaseDrag(oGame, player);
+            }else{
+                player.items[this.drag.slot] = this.drag.item;
+            }
+            
+            this.drag = null;
+        }
+    }
+};
+},{"./d_ItemFactory":2,"./kt_Kramtech.js":16}],13:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
+var UI = require('./g_UI');
 
 function Underworld(elDiv){
     var width = 854;
@@ -1159,43 +1334,15 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
-Underworld.prototype.drawUI = function(){
-    this.console.render(this.ctx, 16, 16);
-    
-    this.map.drawAutoMap(712, 338);
-    
-    var player = this.party[0];
-    var Canvas = KT.Canvas;
-    
-    Canvas.drawSpriteText(this.ctx, player.name, this.sprites.f_font, 16, 440);
-    
-    var hp = player.hp / player.mHp;
-    this.ctx.fillStyle = 'rgb(60,0,0)';
-    this.ctx.fillRect(16, 454, 100, 5);
-    this.ctx.fillStyle = 'rgb(122,0,0)';
-    this.ctx.fillRect(16, 454, 100 * hp, 5);
-    
-    if (player.mMp > 0){
-        var mp = player.mp / player.mMp;
-        this.ctx.fillStyle = 'rgb(45,80,100)';
-        this.ctx.fillRect(16, 462, 80, 3);
-        this.ctx.fillStyle = 'rgb(90,155,200)';
-        this.ctx.fillRect(16, 462, 80 * mp, 3);
-    }
-    
-    Canvas.drawSprite(this.ctx, this.sprites.ui_inventory, 237, 432, 0, 0);
-    for (var i=0,len=player.items.length;i<len;i++){
-        var item = player.items[i];
-        Canvas.drawSprite(this.ctx, this.sprites.items, 240 + (i * 39), 435, item.imageIndex.x, item.imageIndex.y);
-    }
-};
-
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
     KT.Canvas.clearCanvas(this.ctx, "#000000");
+    
+    UI.checkAction(this);
     this.map.update();
-    this.drawUI();
+    
+    UI.drawUI(this);
 };
 
 KT.Utils.addEvent(window, 'load', function(){
@@ -1228,7 +1375,7 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_PlayerStats":3,"./g_Console":6,"./g_MapManager":10,"./kt_Kramtech":15}],13:[function(require,module,exports){
+},{"./d_PlayerStats":3,"./g_Console":6,"./g_MapManager":10,"./g_UI":12,"./kt_Kramtech":16}],14:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -1315,7 +1462,7 @@ module.exports = {
         }
     }
 };
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -1455,7 +1602,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":17,"./kt_Vector2":18}],15:[function(require,module,exports){
+},{"./kt_Utils":18,"./kt_Vector2":19}],16:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -1467,7 +1614,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_Canvas":13,"./kt_Input":14,"./kt_Sprite":16,"./kt_Utils":17,"./kt_Vector2":18}],16:[function(require,module,exports){
+},{"./kt_Canvas":14,"./kt_Input":15,"./kt_Sprite":17,"./kt_Utils":18,"./kt_Vector2":19}],17:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 var Vector2 = require('./kt_Vector2')
 
@@ -1551,7 +1698,7 @@ module.exports = {
         return width - 1;
     }
 };
-},{"./kt_Utils":17,"./kt_Vector2":18}],17:[function(require,module,exports){
+},{"./kt_Utils":18,"./kt_Vector2":19}],18:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -1610,7 +1757,7 @@ module.exports = {
 		return ang;
 	}
 };
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -1711,4 +1858,4 @@ Vector2.fromAngle = function(radian){
 	
 	return new Vector2(x, y);
 };
-},{}]},{},[12]);
+},{}]},{},[13]);

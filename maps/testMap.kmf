@@ -23,14 +23,20 @@
             "item": "sword",
             "x": 5,
             "y": 2,
-            "amout": 1,
+            "amount": 1,
             "status": 1
         },
         {
             "item": "potion",
             "x": 6,
             "y": 2,
-            "amout": 1
+            "amount": 1
+        },
+        {
+            "item": "potion",
+            "x": 6,
+            "y": 3,
+            "amount": 2
         },
         {
             "item": "torch",

@@ -4,7 +4,7 @@ module.exports = {
     items: {
         sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item' },
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true },
         
         torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },

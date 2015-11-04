@@ -95,7 +95,7 @@ Player.prototype.pickItem = function(oItem){
 Player.prototype.checkAction = function(){
     var Input = KT.Input;
     
-    if (Input.isMousePressed()){
+    if (Input.isMouseDown()){
         var mp = Input.mouse.position;
         
         var m = Math;
@@ -108,6 +108,7 @@ Player.prototype.checkAction = function(){
             if (instance._item) this.pickItem(instance);
         }
         
+        Input.mouse.status = 2;
         this.doAct();
     }
 };
