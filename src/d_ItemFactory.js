@@ -18,7 +18,7 @@ module.exports = {
             ret[i] = item[i];
         }
         
-        if (item.type != 'misc') ret.amount = amount;
+        if (item.type != 'misc') ret.amount = Math.min(amount, 5);
         if (item.type == 'weapon') ret.status = status;
         
         return ret;

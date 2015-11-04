@@ -38,7 +38,7 @@ module.exports = {
             ret[i] = item[i];
         }
         
-        if (item.type != 'misc') ret.amount = amount;
+        if (item.type != 'misc') ret.amount = Math.min(amount, 5);
         if (item.type == 'weapon') ret.status = status;
         
         return ret;
@@ -1142,7 +1142,7 @@ module.exports = {
         oGame.console.addMessage(msg + ' ' + name);
         KT.Input.mouse.status = 2;
         
-        if (item.stack && item.amount > 1){
+        if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
             var oldItem = item;
             item = {};
             
@@ -1191,7 +1191,7 @@ module.exports = {
             if (onInventory){
                 this.releaseDrag(oGame, player);
             }else{
-                player.items[this.drag.slot] = this.drag.item;
+                player.addItemToSlot(this.drag.item, this.drag.slot);
             }
             
             this.drag = null;

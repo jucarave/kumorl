@@ -30,13 +30,13 @@
             "item": "potion",
             "x": 6,
             "y": 2,
-            "amount": 1
+            "amount": 4
         },
         {
             "item": "potion",
             "x": 6,
             "y": 3,
-            "amount": 2
+            "amount": 5
         },
         {
             "item": "torch",
