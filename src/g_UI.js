@@ -77,6 +77,7 @@ module.exports = {
         oGame.console.addMessage(msg + ' ' + name);
         KT.Input.mouse.status = 2;
         
+        var fullDrag = true;
         if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
             var oldItem = item;
             item = {};
@@ -87,6 +88,7 @@ module.exports = {
             
             item.amount = 1;
             oldItem.amount -= 1;
+            fullDrag = false;
         }else{
             oPlayer.items[slot] = null;
         }
@@ -94,13 +96,21 @@ module.exports = {
         this.drag = {
             item: item,
             anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
-            slot: slot
+            slot: slot,
+            fullDrag: fullDrag
         };
     },
     
     releaseDrag: function(oGame, oPlayer){
         var pos = KT.Input.mouse.position;
         var slot = ((pos.x - 237) / 38) << 0;
+        
+        if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].code != this.drag.item.code){
+            oPlayer.items[this.drag.slot] = oPlayer.items[slot];
+            oPlayer.items[slot] = this.drag.item;
+            this.drag = null;
+            return;
+        }
         
         var item = oPlayer.addItemToSlot(this.drag.item, slot);
         if (item){
