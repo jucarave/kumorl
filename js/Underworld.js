@@ -1068,6 +1068,9 @@ var ItemFactory = require('./d_ItemFactory');
 
 module.exports = {
     drag: null,
+    lastClick: 0,
+    lastMousePosition: null,
+    lastSlot: -1,
     
     drawoPlayerStats: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
@@ -1124,6 +1127,7 @@ module.exports = {
     },
     
     pickFromInventory: function(oGame, oPlayer){
+        if (this.drag) return;
         var pos = KT.Input.mouse.position;
         
         var slot = ((pos.x - 237) / 38) << 0;
@@ -1136,34 +1140,54 @@ module.exports = {
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
+        if (this.lastClick > 0 && slot == this.lastSlot){
+            oGame.console.addMessage(name + ' used');
+            item.amount -= 1;
+            KT.Input.mouse.status = 2;
+            this.lastClick = 0;
+            this.lastSlot = -1;
+            return;
+        }
+        
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        oGame.console.addMessage(msg + ' ' + name);
-        KT.Input.mouse.status = 2;
-        
-        var fullDrag = true;
-        if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
-            var oldItem = item;
-            item = {};
-            
-            for (var i in oldItem){
-                item[i] = oldItem[i];
-            }
-            
-            item.amount = 1;
-            oldItem.amount -= 1;
-            fullDrag = false;
-        }else{
-            oPlayer.items[slot] = null;
+        if (this.lastMousePosition == null){
+            oGame.console.addMessage(msg + ' ' + name);
+            KT.Input.mouse.status = 2;
         }
         
-        this.drag = {
-            item: item,
-            anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
-            slot: slot,
-            fullDrag: fullDrag
-        };
+        if (this.lastMousePosition != null && !this.lastMousePosition.equalsVector2(pos)){
+            var fullDrag = true;
+            if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
+                var oldItem = item;
+                item = {};
+                
+                for (var i in oldItem){
+                    item[i] = oldItem[i];
+                }
+                
+                item.amount = 1;
+                oldItem.amount -= 1;
+                fullDrag = false;
+            }else{
+                oPlayer.items[slot] = null;
+            }
+            
+            this.drag = {
+                item: item,
+                anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
+                slot: slot,
+                fullDrag: fullDrag
+            };
+            
+            this.lastMousePosition = null;
+            this.lastSlot = -1;
+            this.lastClick = 0;
+        }else{
+            this.lastMousePosition = pos.clone();
+            if (this.lastSlot == -1) this.lastSlot = slot;
+        }
     },
     
     releaseDrag: function(oGame, oPlayer){
@@ -1187,24 +1211,32 @@ module.exports = {
     },
     
     checkAction: function(oGame){
+        if (this.lastClick > 0) this.lastClick -= 1;
+        
         var Input = KT.Input;
         var player = oGame.party[0];
         var pos = Input.mouse.position;
         
         var onInventory = (pos.x >= 237 && pos.y >= 432 && pos.x < 617 && pos.y < 470);
         
-        if (!this.drag && Input.isMouseDown() && onInventory){
+        if (Input.mouse.status && onInventory){
             this.pickFromInventory(oGame, player);
         }
         
-        if (this.drag != null && Input.isMouseUp()){
-            if (onInventory){
-                this.releaseDrag(oGame, player);
-            }else{
-                player.addItemToSlot(this.drag.item, this.drag.slot);
-            }
+        if (Input.isMouseUp()){
+            this.lastMousePosition = null;
+            this.lastSlot = -1;
+            this.lastClick = 10;
             
-            this.drag = null;
+            if (this.drag != null){
+                if (onInventory){
+                    this.releaseDrag(oGame, player);
+                }else{
+                    player.addItemToSlot(this.drag.item, this.drag.slot);
+                }
+                
+                this.drag = null;
+            }
         }
     }
 };
