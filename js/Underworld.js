@@ -19,12 +19,14 @@ module.exports = {
 };
 },{}],2:[function(require,module,exports){
 var Vector2 = require('./kt_Vector2.js');
+var Effect = require('./g_Effect');
+var ActorEffect = require('./e_ActorEffects');
 
 module.exports = {
     items: {
         sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true },
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
         
         torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -33,10 +35,9 @@ module.exports = {
         var item = this.items[itemCode];
         if (!item) throw "Invalid item code: " + itemCode;
         
-        var ret = {};
-        for (var i in item){
-            ret[i] = item[i];
-        }
+        var ret = {
+            ref: item
+        };
         
         if (item.type != 'misc') ret.amount = Math.min(amount, 5);
         if (item.type == 'weapon') ret.status = status;
@@ -56,9 +57,19 @@ module.exports = {
         }else{
             return 'ruined';
         }
+    },
+    
+    activateEffect: function(oGame, oItem, oTarget){
+        var effect = this.items[oItem.ref.code].onUse;
+        
+        switch (effect.type){
+            case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;
+        }
     }
 };
-},{"./kt_Vector2.js":19}],3:[function(require,module,exports){
+},{"./e_ActorEffects":4,"./g_Effect":8,"./kt_Vector2.js":21}],3:[function(require,module,exports){
+var ItemFactory = require('./d_ItemFactory');
+
 function PlayerStats(oGame){
     this.game = oGame;
     
@@ -84,7 +95,7 @@ module.exports = PlayerStats;
 PlayerStats.prototype.addItem = function(oItem){
     for (var i=0;i<10;i++){
         if (this.items[i]){
-            var name = oItem.name;
+            var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
                 this.game.console.addMessage(name + " picked!");
@@ -95,7 +106,7 @@ PlayerStats.prototype.addItem = function(oItem){
         }
         
         this.items[i] = oItem;
-        this.game.console.addMessage(oItem.name + " picked!");
+        this.game.console.addMessage(oItem.ref.name + " picked!");
         
         return true;
     }
@@ -109,7 +120,7 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
         return null;
     }
     
-    if (oItem.stack && this.items[iSlot].code == oItem.code && this.items[iSlot].amount < 5){
+    if (oItem.ref.stack && this.items[iSlot].ref.code == oItem.ref.code && this.items[iSlot].amount < 5){
         if (this.items[iSlot].amount + oItem.amount <= 5){
             this.items[iSlot].amount += oItem.amount;
             
@@ -124,7 +135,37 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
     
     return oItem;
 };
-},{}],4:[function(require,module,exports){
+
+PlayerStats.prototype.useItem = function(iSlot){
+    var item = this.items[iSlot];
+    
+    if (item.ref.onUse){
+        ItemFactory.activateEffect(this.game, item, this);
+    }
+    
+    if (item.ref.stack && item.amount){
+        this.game.console.addMessage(item.ref.name + ' used');
+        if (--item.amount == 0){ this.items[iSlot] = null; }
+        
+        return true;
+    }
+    
+    return false;
+};
+},{"./d_ItemFactory":2}],4:[function(require,module,exports){
+module.exports = {
+    healCharacter: function(oGame, oTarget, iAmount){
+        oTarget.hp = Math.min(oTarget.mHp, oTarget.hp + iAmount);
+        oGame.console.addMessage('Recovered ' + iAmount + ' hp');
+    },
+    
+    execute: function(oGame, sEffect, oTarget){
+        if (sEffect.name == 'heal'){
+            this.healCharacter(oGame, oTarget, sEffect.value);
+        }
+    }
+};
+},{}],5:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Actor(oMapManager, oSprite, oPosition){
@@ -232,7 +273,7 @@ Actor.prototype.update = function(){
     
     this.updateMovement();
 };
-},{"./kt_Kramtech":16}],5:[function(require,module,exports){
+},{"./kt_Kramtech":18}],6:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
@@ -272,7 +313,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":16}],6:[function(require,module,exports){
+},{"./kt_Kramtech":18}],7:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -321,7 +362,17 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":16}],7:[function(require,module,exports){
+},{"./kt_Kramtech":18}],8:[function(require,module,exports){
+function Effect(iType, sName, sValue){
+    this.type = iType;
+    this.name = sName;
+    this.value = sValue;
+}
+
+module.exports = Effect;
+
+Effect.Actor = 1;
+},{}],9:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var KT = require('./kt_Kramtech');
 
@@ -387,7 +438,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":4,"./kt_Kramtech":16}],8:[function(require,module,exports){
+},{"./g_Actor":5,"./kt_Kramtech":18}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
@@ -434,7 +485,7 @@ FloatText.prototype.update = function(){
 };
 
 
-},{"./kt_Kramtech":16}],9:[function(require,module,exports){
+},{"./kt_Kramtech":18}],11:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Item(oMapManager, oPosition, oItem, aParams){
@@ -445,7 +496,7 @@ function Item(oMapManager, oPosition, oItem, aParams){
     
     this.destroyed = false;
     this._item = true;
-    this.solid = this.item.solid;
+    this.solid = this.item.ref.solid;
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
@@ -484,18 +535,18 @@ Item.prototype.draw = function(oCtx, oView){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > oView.width || vy > oView.height) return;
     
-    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.item.imageIndex.x + this.imageIndex, this.item.imageIndex.y);
+    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.item.ref.imageIndex.x + this.imageIndex, this.item.ref.imageIndex.y);
 };
 
 Item.prototype.update = function(){
-    if (this.item.imageNum){
+    if (this.item.ref.imageNum){
         this.imageIndex += this.imageSpeed;
-        if (this.imageIndex >= this.item.imageNum){
+        if (this.imageIndex >= this.item.ref.imageNum){
             this.imageIndex = 0;
         }
     }
 };
-},{"./kt_Kramtech":16}],10:[function(require,module,exports){
+},{"./kt_Kramtech":18}],12:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
@@ -930,7 +981,7 @@ MapManager.prototype.update = function(){
     
     
 };
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":7,"./g_FloatText":8,"./g_Item":9,"./g_Player":11,"./kt_Kramtech":16}],11:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_Player":13,"./kt_Kramtech":18}],13:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
@@ -1000,14 +1051,14 @@ Player.prototype.attackTo = function(oEnemy){
 };
 
 Player.prototype.pickItem = function(oItem){
-    if (oItem.item._static) return;
+    if (oItem.item.ref._static) return;
     
     var m = Math;
     var dx = m.abs(oItem.position.x - this.position.x);
     var dy = m.abs(oItem.position.y - this.position.y);
     
     if (dx > 0 || dy > 0){
-        var name = oItem.item.name.toLowerCase();
+        var name = oItem.item.ref.name.toLowerCase();
         if (oItem.item.status !== undefined){
             name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
         }
@@ -1062,7 +1113,7 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_ItemFactory":2,"./g_Actor":4,"./g_Animation":5,"./kt_Kramtech":16}],12:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./g_Actor":5,"./g_Animation":6,"./kt_Kramtech":18}],14:[function(require,module,exports){
 var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
 
@@ -1101,9 +1152,9 @@ module.exports = {
             item = oPlayer.items[i];
             if (!item) continue;
             
-            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, 240 + (i * 38), 435, item.imageIndex.x, item.imageIndex.y);
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, 240 + (i * 38), 435, item.ref.imageIndex.x, item.ref.imageIndex.y);
             
-            if (item.stack && item.amount > 1){
+            if (item.ref.stack && item.amount > 1){
                 Canvas.drawSpriteText(oGame.ctx, item.amount + "", oGame.sprites.f_font, 243 + (i * 38), 438);
             }
         }
@@ -1112,7 +1163,7 @@ module.exports = {
             item = this.drag.item;
             var pos = KT.Input.mouse.position;
             
-            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, pos.x - this.drag.anchor.x + 3, pos.y - this.drag.anchor.y + 3, item.imageIndex.x, item.imageIndex.y);
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, pos.x - this.drag.anchor.x + 3, pos.y - this.drag.anchor.y + 3, item.ref.imageIndex.x, item.ref.imageIndex.y);
         }
     },
     
@@ -1135,31 +1186,31 @@ module.exports = {
         
         if (!item){ return; }
         
-        var name = item.name.toLowerCase();
+        var name = item.ref.name.toLowerCase();
         if (item.status !== undefined){
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
-        if (this.lastClick > 0 && slot == this.lastSlot){
-            oGame.console.addMessage(name + ' used');
-            item.amount -= 1;
+        if (this.lastClick > 0){
+            oPlayer.useItem(slot);
             KT.Input.mouse.status = 2;
             this.lastClick = 0;
             this.lastSlot = -1;
+            this.lastMousePosition = null;
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition == null){
+        if (this.lastMousePosition == null && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }
         
         if (this.lastMousePosition != null && !this.lastMousePosition.equalsVector2(pos)){
             var fullDrag = true;
-            if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
+            if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
                 var oldItem = item;
                 item = {};
                 
@@ -1194,7 +1245,7 @@ module.exports = {
         var pos = KT.Input.mouse.position;
         var slot = ((pos.x - 237) / 38) << 0;
         
-        if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].code != this.drag.item.code){
+        if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].ref.code != this.drag.item.ref.code){
             oPlayer.items[this.drag.slot] = oPlayer.items[slot];
             oPlayer.items[slot] = this.drag.item;
             this.drag = null;
@@ -1224,9 +1275,11 @@ module.exports = {
         }
         
         if (Input.isMouseUp()){
-            this.lastMousePosition = null;
-            this.lastSlot = -1;
-            this.lastClick = 10;
+            if (this.lastMousePosition != null){
+                this.lastMousePosition = null;
+                this.lastSlot = -1;
+                this.lastClick = 10;
+            }
             
             if (this.drag != null){
                 if (onInventory){
@@ -1240,7 +1293,7 @@ module.exports = {
         }
     }
 };
-},{"./d_ItemFactory":2,"./kt_Kramtech.js":16}],13:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./kt_Kramtech.js":18}],15:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
@@ -1417,7 +1470,7 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_PlayerStats":3,"./g_Console":6,"./g_MapManager":10,"./g_UI":12,"./kt_Kramtech":16}],14:[function(require,module,exports){
+},{"./d_PlayerStats":3,"./g_Console":7,"./g_MapManager":12,"./g_UI":14,"./kt_Kramtech":18}],16:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -1504,7 +1557,7 @@ module.exports = {
         }
     }
 };
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -1644,7 +1697,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":18,"./kt_Vector2":19}],16:[function(require,module,exports){
+},{"./kt_Utils":20,"./kt_Vector2":21}],18:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -1656,7 +1709,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_Canvas":14,"./kt_Input":15,"./kt_Sprite":17,"./kt_Utils":18,"./kt_Vector2":19}],17:[function(require,module,exports){
+},{"./kt_Canvas":16,"./kt_Input":17,"./kt_Sprite":19,"./kt_Utils":20,"./kt_Vector2":21}],19:[function(require,module,exports){
 var Utils = require('./kt_Utils')
 var Vector2 = require('./kt_Vector2')
 
@@ -1740,7 +1793,7 @@ module.exports = {
         return width - 1;
     }
 };
-},{"./kt_Utils":18,"./kt_Vector2":19}],18:[function(require,module,exports){
+},{"./kt_Utils":20,"./kt_Vector2":21}],20:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -1799,7 +1852,7 @@ module.exports = {
 		return ang;
 	}
 };
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -1900,4 +1953,4 @@ Vector2.fromAngle = function(radian){
 	
 	return new Vector2(x, y);
 };
-},{}]},{},[13]);
+},{}]},{},[15]);

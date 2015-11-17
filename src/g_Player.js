@@ -67,14 +67,14 @@ Player.prototype.attackTo = function(oEnemy){
 };
 
 Player.prototype.pickItem = function(oItem){
-    if (oItem.item._static) return;
+    if (oItem.item.ref._static) return;
     
     var m = Math;
     var dx = m.abs(oItem.position.x - this.position.x);
     var dy = m.abs(oItem.position.y - this.position.y);
     
     if (dx > 0 || dy > 0){
-        var name = oItem.item.name.toLowerCase();
+        var name = oItem.item.ref.name.toLowerCase();
         if (oItem.item.status !== undefined){
             name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
         }

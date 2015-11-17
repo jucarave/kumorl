@@ -1,10 +1,12 @@
 var Vector2 = require('./kt_Vector2.js');
+var Effect = require('./g_Effect');
+var ActorEffect = require('./e_ActorEffects');
 
 module.exports = {
     items: {
         sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true },
+        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
         
         torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -13,10 +15,9 @@ module.exports = {
         var item = this.items[itemCode];
         if (!item) throw "Invalid item code: " + itemCode;
         
-        var ret = {};
-        for (var i in item){
-            ret[i] = item[i];
-        }
+        var ret = {
+            ref: item
+        };
         
         if (item.type != 'misc') ret.amount = Math.min(amount, 5);
         if (item.type == 'weapon') ret.status = status;
@@ -35,6 +36,14 @@ module.exports = {
             return 'badly worn';
         }else{
             return 'ruined';
+        }
+    },
+    
+    activateEffect: function(oGame, oItem, oTarget){
+        var effect = this.items[oItem.ref.code].onUse;
+        
+        switch (effect.type){
+            case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;
         }
     }
 };

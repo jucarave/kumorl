@@ -36,9 +36,9 @@ module.exports = {
             item = oPlayer.items[i];
             if (!item) continue;
             
-            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, 240 + (i * 38), 435, item.imageIndex.x, item.imageIndex.y);
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, 240 + (i * 38), 435, item.ref.imageIndex.x, item.ref.imageIndex.y);
             
-            if (item.stack && item.amount > 1){
+            if (item.ref.stack && item.amount > 1){
                 Canvas.drawSpriteText(oGame.ctx, item.amount + "", oGame.sprites.f_font, 243 + (i * 38), 438);
             }
         }
@@ -47,7 +47,7 @@ module.exports = {
             item = this.drag.item;
             var pos = KT.Input.mouse.position;
             
-            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, pos.x - this.drag.anchor.x + 3, pos.y - this.drag.anchor.y + 3, item.imageIndex.x, item.imageIndex.y);
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.items, pos.x - this.drag.anchor.x + 3, pos.y - this.drag.anchor.y + 3, item.ref.imageIndex.x, item.ref.imageIndex.y);
         }
     },
     
@@ -70,31 +70,31 @@ module.exports = {
         
         if (!item){ return; }
         
-        var name = item.name.toLowerCase();
+        var name = item.ref.name.toLowerCase();
         if (item.status !== undefined){
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
-        if (this.lastClick > 0 && slot == this.lastSlot){
-            oGame.console.addMessage(name + ' used');
-            item.amount -= 1;
+        if (this.lastClick > 0){
+            oPlayer.useItem(slot);
             KT.Input.mouse.status = 2;
             this.lastClick = 0;
             this.lastSlot = -1;
+            this.lastMousePosition = null;
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition == null){
+        if (this.lastMousePosition == null && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }
         
         if (this.lastMousePosition != null && !this.lastMousePosition.equalsVector2(pos)){
             var fullDrag = true;
-            if (item.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
+            if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
                 var oldItem = item;
                 item = {};
                 
@@ -129,7 +129,7 @@ module.exports = {
         var pos = KT.Input.mouse.position;
         var slot = ((pos.x - 237) / 38) << 0;
         
-        if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].code != this.drag.item.code){
+        if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].ref.code != this.drag.item.ref.code){
             oPlayer.items[this.drag.slot] = oPlayer.items[slot];
             oPlayer.items[slot] = this.drag.item;
             this.drag = null;
@@ -159,9 +159,11 @@ module.exports = {
         }
         
         if (Input.isMouseUp()){
-            this.lastMousePosition = null;
-            this.lastSlot = -1;
-            this.lastClick = 10;
+            if (this.lastMousePosition != null){
+                this.lastMousePosition = null;
+                this.lastSlot = -1;
+                this.lastClick = 10;
+            }
             
             if (this.drag != null){
                 if (onInventory){

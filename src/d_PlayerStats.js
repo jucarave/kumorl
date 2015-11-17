@@ -1,3 +1,5 @@
+var ItemFactory = require('./d_ItemFactory');
+
 function PlayerStats(oGame){
     this.game = oGame;
     
@@ -23,7 +25,7 @@ module.exports = PlayerStats;
 PlayerStats.prototype.addItem = function(oItem){
     for (var i=0;i<10;i++){
         if (this.items[i]){
-            var name = oItem.name;
+            var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
                 this.game.console.addMessage(name + " picked!");
@@ -34,7 +36,7 @@ PlayerStats.prototype.addItem = function(oItem){
         }
         
         this.items[i] = oItem;
-        this.game.console.addMessage(oItem.name + " picked!");
+        this.game.console.addMessage(oItem.ref.name + " picked!");
         
         return true;
     }
@@ -48,7 +50,7 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
         return null;
     }
     
-    if (oItem.stack && this.items[iSlot].code == oItem.code && this.items[iSlot].amount < 5){
+    if (oItem.ref.stack && this.items[iSlot].ref.code == oItem.ref.code && this.items[iSlot].amount < 5){
         if (this.items[iSlot].amount + oItem.amount <= 5){
             this.items[iSlot].amount += oItem.amount;
             
@@ -62,4 +64,21 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
     }
     
     return oItem;
+};
+
+PlayerStats.prototype.useItem = function(iSlot){
+    var item = this.items[iSlot];
+    
+    if (item.ref.onUse){
+        ItemFactory.activateEffect(this.game, item, this);
+    }
+    
+    if (item.ref.stack && item.amount){
+        this.game.console.addMessage(item.ref.name + ' used');
+        if (--item.amount == 0){ this.items[iSlot] = null; }
+        
+        return true;
+    }
+    
+    return false;
 };
