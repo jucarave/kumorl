@@ -1,9 +1,46 @@
 var KT = require('./kt_Kramtech');
 
-function Item(oMapManager, oPosition, oItem, aParams){
+function Item(){
+    this.mapManager = null;
+    this.sprite = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    this.item = null;
+    
+    this.destroyed = false;
+    this._item = true;
+    this.solid = false;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 4;
+}
+
+module.exports = Item;
+
+Item.memLoc = [];
+Item.preAllocate = function(iAmount){
+    Item.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Item.memLoc.push(new Item());
+    }
+};
+
+Item.allocate = function(oMapManager, x, y, oItem, oParams){
+    if (Item.memLoc.length == 0) throw "Out of Item instances.";
+    var item = Item.memLoc.pop();
+    
+    item.init(oMapManager, x, y, oItem, oParams);
+    return item;
+};
+
+Item.free = function(oItem){
+    Item.memLoc.push(oItem);
+};
+
+Item.prototype.init = function(oMapManager, x, y, oItem, oParams){
     this.mapManager = oMapManager;
     this.sprite = oMapManager.game.sprites.items;
-    this.position = oPosition;
+    this.position.set(x, y);
     this.item = oItem;
     
     this.destroyed = false;
@@ -13,10 +50,8 @@ function Item(oMapManager, oPosition, oItem, aParams){
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
     
-    this.parseParams(aParams);
-}
-
-module.exports = Item;
+    this.parseParams(oParams);
+};
 
 Item.prototype.parseParams = function(aParams){
     if (!aParams) return;

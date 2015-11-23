@@ -2,7 +2,14 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
+var ItemFactory = require('./d_ItemFactory');
+var EnemyFactory = require('./d_EnemyFactory');
+var Player = require('./g_Player');
+var Enemy = require('./g_Enemy');
+var Item = require('./g_Item');
 var UI = require('./g_UI');
+var FloatText = require('./g_FloatText');
+var Animation = require('./g_Animation');
 
 function Underworld(elDiv){
     var width = 854;
@@ -59,19 +66,21 @@ Underworld.prototype.loadTileset = function(tileset){
 };
 
 Underworld.prototype.loadImages = function(){
-    var centerOr = new KT.Vector2(16, 16);
+    var centerOr = KT.Vector2.allocate(16, 16);
+    var Sprite = KT.Sprite;
     
-    this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
     
-    this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
-    this.sprites.ui_inventory = KT.Sprite.loadSprite('img/ui/sprInventory.png');
+    this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
+    this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
     
-    this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
-    this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
+    this.sprites.player = Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
+    this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
+
+    this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
+    this.sprites.particles_8x8 = Sprite.loadSprite('img/particles/sprParticles_8x8.png', 8, 8);
     
-    this.sprites.items = KT.Sprite.loadSprite('img/items/sprItems.png', 32, 32);
-    
-    this.sprites.at_slice = KT.Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
+    this.sprites.at_slice = Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
 };
 
 Underworld.prototype.createSurface = function(iWidth, iHeight){
@@ -91,7 +100,7 @@ Underworld.prototype.checkReadyData = function(){
 
 Underworld.prototype.newGame = function(){
     this.maps = [];
-    this.map = new MapManager(this, 'testMap');
+    this.map = MapManager.allocate(this, 'testMap');
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
@@ -145,6 +154,8 @@ Underworld.prototype.update = function(){
 };
 
 KT.Utils.addEvent(window, 'load', function(){
+    preloadMemory();
+    
     var game = new Underworld(KT.Utils.get("divGame"));
     
     var wait = function(){
@@ -157,6 +168,20 @@ KT.Utils.addEvent(window, 'load', function(){
     
     wait();
 });
+
+function preloadMemory(){
+    KT.Vector2.preAllocate(100);
+    ItemFactory.preAllocate(10);
+    EnemyFactory.preAllocate(10);
+    MapManager.preAllocate(10);
+    Player.preAllocate(1);
+    Enemy.preAllocate(10);
+    Item.preAllocate(10);
+    FloatText.preAllocate(5);
+    Animation.preAllocate(3);
+    
+    UI.init();
+}
 
 var requestAnimFrame = (function(){
   return  window.requestAnimationFrame       ||

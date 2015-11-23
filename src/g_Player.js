@@ -3,16 +3,39 @@ var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 var ItemFactory = require('./d_ItemFactory');
 
-function Player(oMapManager, oSprite, oPosition, oPartyMember){
-    Actor.call(this, oMapManager, oSprite, oPosition);
+function Player(){
+    Actor.call(this);
     
     this._player = true;
-    this.partyMember = oPartyMember;
+    this.partyMember = null;
 }
 
 Player.prototype = Object.create(Actor.prototype);
 
 module.exports = Player;
+
+Player.memLoc = [];
+Player.preAllocate = function(iAmount){
+    Player.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Player.memLoc.push(new Player(null, ''));
+    }
+};
+
+Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
+    if (Player.memLoc.length == 0) throw "Out of Player instances.";
+    
+    var player = Player.memLoc.pop();
+    player.init(oMapManager, oSprite, x, y);
+    player.partyMember = oPartyMember;
+    
+    return player;
+};
+
+Player.free = function(oPlayer){
+    Player.memLoc.push(oPlayer);
+};
 
 Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
@@ -57,10 +80,10 @@ Player.prototype.attackTo = function(oEnemy){
         return;
     }
     
-    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.name);
+    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name);
     
     var thus = this;
-    this.mapManager.createAttack(new Animation(this.mapManager, this.game.sprites.at_slice, oEnemy.position.clone(), function(){
+    this.mapManager.createAttack(Animation.allocate(this.mapManager, this.game.sprites.at_slice, oEnemy.position.x, oEnemy.position.y, function(){
         var dmg = thus.game.rollDice(thus.partyMember.atk);
         oEnemy.receiveDamage(dmg);
     }), oEnemy );

@@ -2,10 +2,20 @@ var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
 
 module.exports = {
-    drag: null,
+    drag: {
+        item: null,
+        anchor: null,
+        slot: 0,
+        fullDrag: false
+    },
     lastClick: 0,
     lastMousePosition: null,
     lastSlot: -1,
+    
+    init: function(){
+        this.drag.anchor = KT.Vector2.allocate(0, 0);
+        this.lastMousePosition = KT.Vector2.allocate(-1, 0);
+    },
     
     drawoPlayerStats: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
@@ -43,7 +53,7 @@ module.exports = {
             }
         }
         
-        if (this.drag){
+        if (this.drag.item){
             item = this.drag.item;
             var pos = KT.Input.mouse.position;
             
@@ -62,7 +72,7 @@ module.exports = {
     },
     
     pickFromInventory: function(oGame, oPlayer){
-        if (this.drag) return;
+        if (this.drag.item) return;
         var pos = KT.Input.mouse.position;
         
         var slot = ((pos.x - 237) / 38) << 0;
@@ -80,47 +90,40 @@ module.exports = {
             KT.Input.mouse.status = 2;
             this.lastClick = 0;
             this.lastSlot = -1;
-            this.lastMousePosition = null;
+            this.lastMousePosition.set(-1, 0);
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition == null && KT.Input.mouse.status == 1){
+        if (this.lastMousePosition.x != -1 && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }
         
-        if (this.lastMousePosition != null && !this.lastMousePosition.equalsVector2(pos)){
+        if (this.lastMousePosition.x != -1 && !this.lastMousePosition.equalsVector2(pos)){
             var fullDrag = true;
             if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
                 var oldItem = item;
-                item = {};
+                item = ItemFactory.allocate(oldItem.ref, 1, oldItem.status);
                 
-                for (var i in oldItem){
-                    item[i] = oldItem[i];
-                }
-                
-                item.amount = 1;
                 oldItem.amount -= 1;
                 fullDrag = false;
             }else{
                 oPlayer.items[slot] = null;
             }
             
-            this.drag = {
-                item: item,
-                anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
-                slot: slot,
-                fullDrag: fullDrag
-            };
+            this.drag.item = item;
+            this.drag.anchor.set(pos.x - (slot * 38 + 237), pos.y - 432);
+            this.drag.slot = slot;
+            this.drag.fullDrag = fullDrag;
             
-            this.lastMousePosition = null;
+            this.lastMousePosition.set(-1, 0);
             this.lastSlot = -1;
             this.lastClick = 0;
         }else{
-            this.lastMousePosition = pos.clone();
+            this.lastMousePosition.set(pos.x, pos.y);
             if (this.lastSlot == -1) this.lastSlot = slot;
         }
     },
@@ -132,17 +135,19 @@ module.exports = {
         if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].ref.code != this.drag.item.ref.code){
             oPlayer.items[this.drag.slot] = oPlayer.items[slot];
             oPlayer.items[slot] = this.drag.item;
-            this.drag = null;
+            this.drag.item = null;
             return;
         }
-        
+        var preSlot = oPlayer.items[slot];
         var item = oPlayer.addItemToSlot(this.drag.item, slot);
         if (item){
             item = oPlayer.addItemToSlot(this.drag.item, this.drag.slot);
             if (item) throw "Da fuq";
+        }else if (preSlot){
+            ItemFactory.free(this.drag.item);
         }
         
-        this.drag = null;
+        this.drag.item = null;
     },
     
     checkAction: function(oGame){
@@ -159,20 +164,20 @@ module.exports = {
         }
         
         if (Input.isMouseUp()){
-            if (this.lastMousePosition != null){
-                this.lastMousePosition = null;
+            if (this.lastMousePosition.x != -1){
+                this.lastMousePosition.set(-1, 0);
                 this.lastSlot = -1;
                 this.lastClick = 10;
             }
             
-            if (this.drag != null){
+            if (this.drag.item != null){
                 if (onInventory){
                     this.releaseDrag(oGame, player);
                 }else{
                     player.addItemToSlot(this.drag.item, this.drag.slot);
                 }
                 
-                this.drag = null;
+                this.drag.item = null;
             }
         }
     }

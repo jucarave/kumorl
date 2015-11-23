@@ -5,8 +5,43 @@ var EnemyFactory = require('./d_EnemyFactory');
 var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
 var FloatText = require('./g_FloatText');
+var Animation = require('./g_Animation');
 
 function MapManager(oGame, sMapName){
+    this.view = KT.Vector2.allocate(0, 0);
+    this.view.width = 27;
+    this.view.height = 15;
+    
+    this.prevView = KT.Vector2.allocate(-1, 0);
+    
+    this.initMap(oGame, sMapName);
+}
+
+module.exports = MapManager;
+
+MapManager.memLoc = [];
+MapManager.preAllocate = function(iAmount){
+    MapManager.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        MapManager.memLoc.push(new MapManager(null, ''));
+    }
+};
+
+MapManager.allocate = function(oGame, sMapName){
+    if (MapManager.memLoc.length == 0) throw "Out of MapManager instances.";
+    
+    var map = MapManager.memLoc.pop();
+    map.initMap(oGame, sMapName);
+    
+    return map;
+};
+
+MapManager.free = function(oMapManager){
+    MapManager.memLoc.push(oMapManager);
+};
+
+MapManager.prototype.initMap = function(oGame, sMapName){
     this.game = oGame;
     this.mapName = sMapName;
     
@@ -23,17 +58,12 @@ function MapManager(oGame, sMapName){
     this.playerAction = false;
     
     this.tilesLoc = [];
-    this.view = new KT.Vector2(0, 0);
-    this.view.width = 27;
-    this.view.height = 15;
-    
-    this.prevView = new KT.Vector2(-1, 0);
-    
-    this.ready = false;
-    this.loadMap(sMapName);
-}
+    this.view.set(0, 0);
+    this.prevView.set(-1, 0);
 
-module.exports = MapManager;
+    this.ready = false;
+    if (sMapName) this.loadMap(sMapName);
+};
 
 MapManager.prototype.parseTilesLocation = function(oTileset){
     var floor = Math.floor;
@@ -86,12 +116,12 @@ MapManager.prototype.loadMap = function(sMapName){
         
         for (var i=0,len=map.items.length;i<len;i++){
             var item = map.items[i];
-            thus.instances.push(new Item(thus, new KT.Vector2(item.x, item.y), ItemFactory.getItem(item.item, item.amount, item.status), item.params));
+            thus.instances.push(Item.allocate(thus, item.x, item.y, ItemFactory.getItem(item.item, item.amount, item.status), item.params));
         }
         
-        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
+        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0]);
         
-        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4), EnemyFactory.getEnemy('bat'));
+        var e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 4, EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);
         
         thus.ready = true;
@@ -155,8 +185,16 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
-MapManager.prototype.createFloatText = function(sText, oPosition){
-    var fText = new FloatText(this, oPosition, sText, this.game.sprites.f_font, 30, true);
+MapManager.prototype.destroyInstance = function(instance){
+    if (instance._item){ Item.free(instance); }else
+    if (instance._floattext){ FloatText.free(instance); }else
+    if (instance._animation){ Animation.free(instance); }else
+    if (instance._enemy){ Enemy.free(instance); }
+    else{ console.log(instance); throw "Da phuq"; } 
+};
+
+MapManager.prototype.createFloatText = function(sText, x, y){
+    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true);
     this.instancesFront.push(fText);
 };
 
@@ -399,7 +437,7 @@ MapManager.prototype.update = function(){
     for (var i=0,len=this.instances.length;i<len;i++){
         ins = this.instances[i];
         if (ins.destroyed){
-            this.instances.splice(i, 1);
+            this.destroyInstance(this.instances.splice(i, 1)[0]);
             len = this.instances.length;
             i--;
             continue;
@@ -414,7 +452,7 @@ MapManager.prototype.update = function(){
     for (i=0,len=this.instancesFront.length;i<len;i++){
         ins = this.instancesFront[i];
         if (ins.destroyed){
-            this.instancesFront.splice(i, 1);
+            this.destroyInstance(this.instancesFront.splice(i, 1)[0]);
             len = this.instancesFront.length;
             i--;
             continue;
@@ -425,6 +463,7 @@ MapManager.prototype.update = function(){
     }
     
     if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
+        Animation.free(this.attack);
         this.attack = null;
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;

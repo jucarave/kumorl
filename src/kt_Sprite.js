@@ -1,5 +1,5 @@
-var Utils = require('./kt_Utils')
-var Vector2 = require('./kt_Vector2')
+var Utils = require('./kt_Utils');
+var Vector2 = require('./kt_Vector2');
 
 module.exports = {
     loadSprite: function(sFilename, iSprWidth, iSprHeight, oParams){
@@ -11,7 +11,7 @@ module.exports = {
         img.sprHeight = iSprHeight;
         img.ready = false;
         
-        img.origin = (oParams.origin)? oParams.origin : new Vector2(0, 0);
+        img.origin = (oParams.origin)? oParams.origin : Vector2.allocate(0, 0);
         
         Utils.addEvent(img, "load", function(){
             if (!img.sprWidth) img.sprWidth = img.width;

@@ -1,8 +1,44 @@
 var KT = require('./kt_Kramtech');
 
-function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
+function FloatText(){
+    this.mapManager = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    this.text = '';
+    this.lifetime = 0;
+    this.floatUp = false;
+    this.font = null;
+    
+    this.destroyed = false;
+    this._floattext = true;
+}
+
+module.exports = FloatText;
+
+FloatText.memLoc = [];
+FloatText.preAllocate = function(iAmount){
+    FloatText.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        FloatText.memLoc.push(new FloatText());
+    }
+};
+
+FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+    if (FloatText.memLoc.length == 0) throw "Out of FloatText instances.";
+    
+    var text = FloatText.memLoc.pop();
+    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp);
+    
+    return text;
+};
+
+FloatText.free = function(oFloatText){
+    FloatText.memLoc.push(oFloatText);
+};
+
+FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
     this.mapManager = oMapManager;
-    this.position = oPosition;
+    this.position.set(x, y);
     this.text = sText;
     this.lifetime = iLifetime;
     this.floatUp = bFloatUp;
@@ -11,9 +47,7 @@ function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
     this.fixPosition();
     
     this.destroyed = false;
-}
-
-module.exports = FloatText;
+};
 
 FloatText.prototype.fixPosition = function(){
     this.position.x += 0.5;

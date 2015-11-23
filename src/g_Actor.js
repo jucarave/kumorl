@@ -1,15 +1,15 @@
 var KT = require('./kt_Kramtech');
 
-function Actor(oMapManager, oSprite, oPosition){
-    this.mapManager = oMapManager;
-    this.game = oMapManager.game;
-    this.sprite = oSprite;
+function Actor(){
+    this.mapManager = null;
+    this.game = null;
+    this.sprite = null;
     
-    this.position = oPosition;
+    this.position = KT.Vector2.allocate(0, 0);
     this.position.z = 0;
-    this.scale = new KT.Vector2(1, 1);
+    this.scale = KT.Vector2.allocate(1, 1);
     
-    this.target = new KT.Vector2(-1, 0);
+    this.target = KT.Vector2.allocate(-1, 0);
     this.moving = false;
     
     this.imageIndex = 0;
@@ -26,6 +26,27 @@ function Actor(oMapManager, oSprite, oPosition){
 }
 
 module.exports = Actor;
+
+Actor.prototype.init = function(oMapManager, oSprite, x, y){
+    this.mapManager = oMapManager;
+    this.game = oMapManager.game;
+    this.sprite = oSprite;
+    
+    this.position.set(x, y);
+    this.position.z = 0;
+    this.scale.set(1, 1);
+    
+    this.target.set(-1, 0);
+    this.moving = false;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 8;
+    
+    this.destroyed = false;
+    this.solid = true;
+    
+    this.blink = -1;
+};
 
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;

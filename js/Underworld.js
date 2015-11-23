@@ -1,18 +1,45 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
+    memLoc: [],
+    
     enemies: {
         bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '2D3', dfs: '1D4' }
+    },
+    
+    preAllocate: function(iAmount){
+        this.memLoc = [];
+        
+        for (var i=0;i<iAmount;i++){
+            this.memLoc.push({
+                ref: null,
+                hp: 0
+            });
+        }
+    },
+    
+    allocate: function(oRef){
+        if (this.memLoc.length == 0) throw "Out of Enemy Factory instances.";
+        
+        var enemy = this.memLoc.pop();
+        
+        enemy.ref = oRef;
+        enemy.hp = oRef.hp;
+        enemy.mHp = oRef.hp;
+        
+        return enemy;
+    },
+    
+    free: function(oEnemy){
+        console.log("HAIO");
+        oEnemy.ref = null;
+        this.memLoc.push(oEnemy);
     },
     
     getEnemy: function(code){
         var enemy = this.enemies[code];
         if (!enemy) throw "Invalid enemy code: " + code;
         
-        var ret = {};
-        
-        for (var i in enemy){
-            ret[i] = enemy[i];
-        }
+        var ret = this.allocate(enemy);
         
         return ret;
     }
@@ -23,24 +50,55 @@ var Effect = require('./g_Effect');
 var ActorEffect = require('./e_ActorEffects');
 
 module.exports = {
+    memLoc: [],
+    
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
+        sword: { name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
         
-        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
+        torch: { name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
+    },
+    
+    preAllocate: function(iAmount){
+        this.memLoc = [];
+        
+        for (var i=0;i<iAmount;i++){
+            this.memLoc.push({
+                ref: null,
+                amount: 0,
+                status: 0
+            });
+        }
+    },
+    
+    allocate: function(oRef, iAmount, fStatus){
+        if (this.memLoc.length == 0) throw "Out of Item Factory instances.";
+        
+        var item = this.memLoc.pop();
+        
+        item.ref = oRef;
+        item.amount = iAmount;
+        item.status = fStatus;
+        
+        return item;
+    },
+    
+    free: function(oItem){
+        oItem.ref = null;
+        this.memLoc.push(oItem);
     },
     
     getItem: function(itemCode, amount, status){
         var item = this.items[itemCode];
         if (!item) throw "Invalid item code: " + itemCode;
         
-        var ret = {
-            ref: item
-        };
+        if (!amount) amount = 1;
+        if (!status) status = -1;
         
-        if (item.type != 'misc') ret.amount = Math.min(amount, 5);
-        if (item.type == 'weapon') ret.status = status;
+        amount = Math.min(amount, 5);
+        
+        var ret = this.allocate(item, amount, status);
         
         return ret;
     },
@@ -60,7 +118,7 @@ module.exports = {
     },
     
     activateEffect: function(oGame, oItem, oTarget){
-        var effect = this.items[oItem.ref.code].onUse;
+        var effect = oItem.onUse;
         
         switch (effect.type){
             case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;
@@ -98,6 +156,7 @@ PlayerStats.prototype.addItem = function(oItem){
             var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
+                ItemFactory.free(oItem);
                 this.game.console.addMessage(name + " picked!");
                 return true;
             }else{
@@ -138,15 +197,20 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
 
 PlayerStats.prototype.useItem = function(iSlot){
     var item = this.items[iSlot];
-    
-    if (item.ref.onUse){
-        ItemFactory.activateEffect(this.game, item, this);
-    }
+    var effect = item.onUse;
     
     if (item.ref.stack && item.amount){
         this.game.console.addMessage(item.ref.name + ' used');
-        if (--item.amount == 0){ this.items[iSlot] = null; }
+        if (--item.amount == 0){ 
+            ItemFactory.free(item);
+            this.items[iSlot] = null; 
+        }
         
+        if (!effect) return true;
+    }
+    
+    if (effect){
+        ItemFactory.activateEffect(this.game, item, this);
         return true;
     }
     
@@ -168,16 +232,16 @@ module.exports = {
 },{}],5:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
-function Actor(oMapManager, oSprite, oPosition){
-    this.mapManager = oMapManager;
-    this.game = oMapManager.game;
-    this.sprite = oSprite;
+function Actor(){
+    this.mapManager = null;
+    this.game = null;
+    this.sprite = null;
     
-    this.position = oPosition;
+    this.position = KT.Vector2.allocate(0, 0);
     this.position.z = 0;
-    this.scale = new KT.Vector2(1, 1);
+    this.scale = KT.Vector2.allocate(1, 1);
     
-    this.target = new KT.Vector2(-1, 0);
+    this.target = KT.Vector2.allocate(-1, 0);
     this.moving = false;
     
     this.imageIndex = 0;
@@ -194,6 +258,27 @@ function Actor(oMapManager, oSprite, oPosition){
 }
 
 module.exports = Actor;
+
+Actor.prototype.init = function(oMapManager, oSprite, x, y){
+    this.mapManager = oMapManager;
+    this.game = oMapManager.game;
+    this.sprite = oSprite;
+    
+    this.position.set(x, y);
+    this.position.z = 0;
+    this.scale.set(1, 1);
+    
+    this.target.set(-1, 0);
+    this.moving = false;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 8;
+    
+    this.destroyed = false;
+    this.solid = true;
+    
+    this.blink = -1;
+};
 
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
@@ -276,10 +361,48 @@ Actor.prototype.update = function(){
 },{"./kt_Kramtech":18}],6:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
-function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
+function Animation(){
+    this.mapManager = null;
+    this.sprite = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    
+    this.onAnimationEnd = null;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 2;
+    
+    this.destroyed = false;
+    this._animation = true;
+}
+
+module.exports = Animation;
+
+Animation.memLoc = [];
+Animation.preAllocate = function(iAmount){
+    Animation.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Animation.memLoc.push(new Animation());
+    }
+};
+
+Animation.allocate = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
+    if (Animation.memLoc.length == 0) throw "Out of Animation instances.";
+    
+    var animation = Animation.memLoc.pop();
+    animation.init(oMapManager, oSprite, x, y, fOnAnimationEnd);
+    
+    return animation;
+};
+
+Animation.free = function(oFloatText){
+    Animation.memLoc.push(oFloatText);
+};
+
+Animation.prototype.init = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
     this.mapManager = oMapManager;
     this.sprite = oSprite;
-    this.position = oPosition;
+    this.position.set(x, y);
     
     this.onAnimationEnd = fOnAnimationEnd;
     
@@ -287,9 +410,7 @@ function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
     this.imageSpeed = 1 / 2;
     
     this.destroyed = false;
-}
-
-module.exports = Animation;
+};
 
 Animation.prototype.draw = function(oCtx, view){
     if (this.destroyed) return;
@@ -374,6 +495,7 @@ module.exports = Effect;
 Effect.Actor = 1;
 },{}],9:[function(require,module,exports){
 var Actor = require('./g_Actor');
+var EnemyFactory = require('./d_EnemyFactory');
 var KT = require('./kt_Kramtech');
 
 function Enemy(oMapManager, oSprite, oPosition, enemyStats){
@@ -387,18 +509,42 @@ Enemy.prototype = Object.create(Actor.prototype);
 
 module.exports = Enemy;
 
+Enemy.memLoc = [];
+Enemy.preAllocate = function(iAmount){
+    Enemy.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Enemy.memLoc.push(new Enemy());
+    }
+};
+
+Enemy.allocate = function(oMapManager, oSprite, x, y, enemyStats){
+    if (Enemy.memLoc.length == 0) throw "Out of Enemy instances.";
+    
+    var enemy = Enemy.memLoc.pop();
+    enemy.init(oMapManager, oSprite, x, y);
+    enemy.enemyStats = enemyStats;
+    
+    return enemy;
+};
+
+Enemy.free = function(oEnemy){
+    EnemyFactory.free(oEnemy.enemyStats);
+    Enemy.memLoc.push(oEnemy);
+};
+
 Enemy.prototype.receiveDamage = function(iDmg){
-    var dfs = this.game.rollDice(this.enemyStats.dfs);
+    var dfs = this.game.rollDice(this.enemyStats.ref.dfs);
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){
-        this.mapManager.createFloatText('Blocked', this.position.clone());
+        this.mapManager.createFloatText('Blocked', this.position.x, this.position.y);
         this.game.console.addToLast(", Blocked");
         return;
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.mapManager.createFloatText(dmg + '', this.position.clone());
+    this.mapManager.createFloatText(dmg + '', this.position.x, this.position.y);
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     
@@ -429,7 +575,7 @@ Enemy.prototype.update = function(){
     }
     
     if (this.enemyStats.hp <= 0){
-        this.game.console.addMessage(this.enemyStats.name + " died");
+        this.game.console.addMessage(this.enemyStats.ref.name + " died");
         this.destroy();
         return;
     }
@@ -438,12 +584,48 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./g_Actor":5,"./kt_Kramtech":18}],10:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./g_Actor":5,"./kt_Kramtech":18}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
-function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
+function FloatText(){
+    this.mapManager = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    this.text = '';
+    this.lifetime = 0;
+    this.floatUp = false;
+    this.font = null;
+    
+    this.destroyed = false;
+    this._floattext = true;
+}
+
+module.exports = FloatText;
+
+FloatText.memLoc = [];
+FloatText.preAllocate = function(iAmount){
+    FloatText.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        FloatText.memLoc.push(new FloatText());
+    }
+};
+
+FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+    if (FloatText.memLoc.length == 0) throw "Out of FloatText instances.";
+    
+    var text = FloatText.memLoc.pop();
+    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp);
+    
+    return text;
+};
+
+FloatText.free = function(oFloatText){
+    FloatText.memLoc.push(oFloatText);
+};
+
+FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
     this.mapManager = oMapManager;
-    this.position = oPosition;
+    this.position.set(x, y);
     this.text = sText;
     this.lifetime = iLifetime;
     this.floatUp = bFloatUp;
@@ -452,9 +634,7 @@ function FloatText(oMapManager, oPosition, sText, oFont, iLifetime, bFloatUp){
     this.fixPosition();
     
     this.destroyed = false;
-}
-
-module.exports = FloatText;
+};
 
 FloatText.prototype.fixPosition = function(){
     this.position.x += 0.5;
@@ -488,10 +668,47 @@ FloatText.prototype.update = function(){
 },{"./kt_Kramtech":18}],11:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
-function Item(oMapManager, oPosition, oItem, aParams){
+function Item(){
+    this.mapManager = null;
+    this.sprite = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    this.item = null;
+    
+    this.destroyed = false;
+    this._item = true;
+    this.solid = false;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 4;
+}
+
+module.exports = Item;
+
+Item.memLoc = [];
+Item.preAllocate = function(iAmount){
+    Item.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Item.memLoc.push(new Item());
+    }
+};
+
+Item.allocate = function(oMapManager, x, y, oItem, oParams){
+    if (Item.memLoc.length == 0) throw "Out of Item instances.";
+    var item = Item.memLoc.pop();
+    
+    item.init(oMapManager, x, y, oItem, oParams);
+    return item;
+};
+
+Item.free = function(oItem){
+    Item.memLoc.push(oItem);
+};
+
+Item.prototype.init = function(oMapManager, x, y, oItem, oParams){
     this.mapManager = oMapManager;
     this.sprite = oMapManager.game.sprites.items;
-    this.position = oPosition;
+    this.position.set(x, y);
     this.item = oItem;
     
     this.destroyed = false;
@@ -501,10 +718,8 @@ function Item(oMapManager, oPosition, oItem, aParams){
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
     
-    this.parseParams(aParams);
-}
-
-module.exports = Item;
+    this.parseParams(oParams);
+};
 
 Item.prototype.parseParams = function(aParams){
     if (!aParams) return;
@@ -554,8 +769,43 @@ var EnemyFactory = require('./d_EnemyFactory');
 var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
 var FloatText = require('./g_FloatText');
+var Animation = require('./g_Animation');
 
 function MapManager(oGame, sMapName){
+    this.view = KT.Vector2.allocate(0, 0);
+    this.view.width = 27;
+    this.view.height = 15;
+    
+    this.prevView = KT.Vector2.allocate(-1, 0);
+    
+    this.initMap(oGame, sMapName);
+}
+
+module.exports = MapManager;
+
+MapManager.memLoc = [];
+MapManager.preAllocate = function(iAmount){
+    MapManager.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        MapManager.memLoc.push(new MapManager(null, ''));
+    }
+};
+
+MapManager.allocate = function(oGame, sMapName){
+    if (MapManager.memLoc.length == 0) throw "Out of MapManager instances.";
+    
+    var map = MapManager.memLoc.pop();
+    map.initMap(oGame, sMapName);
+    
+    return map;
+};
+
+MapManager.free = function(oMapManager){
+    MapManager.memLoc.push(oMapManager);
+};
+
+MapManager.prototype.initMap = function(oGame, sMapName){
     this.game = oGame;
     this.mapName = sMapName;
     
@@ -572,17 +822,12 @@ function MapManager(oGame, sMapName){
     this.playerAction = false;
     
     this.tilesLoc = [];
-    this.view = new KT.Vector2(0, 0);
-    this.view.width = 27;
-    this.view.height = 15;
-    
-    this.prevView = new KT.Vector2(-1, 0);
-    
-    this.ready = false;
-    this.loadMap(sMapName);
-}
+    this.view.set(0, 0);
+    this.prevView.set(-1, 0);
 
-module.exports = MapManager;
+    this.ready = false;
+    if (sMapName) this.loadMap(sMapName);
+};
 
 MapManager.prototype.parseTilesLocation = function(oTileset){
     var floor = Math.floor;
@@ -635,12 +880,12 @@ MapManager.prototype.loadMap = function(sMapName){
         
         for (var i=0,len=map.items.length;i<len;i++){
             var item = map.items[i];
-            thus.instances.push(new Item(thus, new KT.Vector2(item.x, item.y), ItemFactory.getItem(item.item, item.amount, item.status), item.params));
+            thus.instances.push(Item.allocate(thus, item.x, item.y, ItemFactory.getItem(item.item, item.amount, item.status), item.params));
         }
         
-        thus.player = new Player(thus, thus.game.sprites.player, new KT.Vector2(3, 3), thus.game.party[0]);
+        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0]);
         
-        var e = new Enemy(thus, thus.game.sprites.bat, new KT.Vector2(9, 4), EnemyFactory.getEnemy('bat'));
+        var e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 4, EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);
         
         thus.ready = true;
@@ -704,8 +949,16 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
-MapManager.prototype.createFloatText = function(sText, oPosition){
-    var fText = new FloatText(this, oPosition, sText, this.game.sprites.f_font, 30, true);
+MapManager.prototype.destroyInstance = function(instance){
+    if (instance._item){ Item.free(instance); }else
+    if (instance._floattext){ FloatText.free(instance); }else
+    if (instance._animation){ Animation.free(instance); }else
+    if (instance._enemy){ Enemy.free(instance); }
+    else{ console.log(instance); throw "Da phuq"; } 
+};
+
+MapManager.prototype.createFloatText = function(sText, x, y){
+    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true);
     this.instancesFront.push(fText);
 };
 
@@ -948,7 +1201,7 @@ MapManager.prototype.update = function(){
     for (var i=0,len=this.instances.length;i<len;i++){
         ins = this.instances[i];
         if (ins.destroyed){
-            this.instances.splice(i, 1);
+            this.destroyInstance(this.instances.splice(i, 1)[0]);
             len = this.instances.length;
             i--;
             continue;
@@ -963,7 +1216,7 @@ MapManager.prototype.update = function(){
     for (i=0,len=this.instancesFront.length;i<len;i++){
         ins = this.instancesFront[i];
         if (ins.destroyed){
-            this.instancesFront.splice(i, 1);
+            this.destroyInstance(this.instancesFront.splice(i, 1)[0]);
             len = this.instancesFront.length;
             i--;
             continue;
@@ -974,6 +1227,7 @@ MapManager.prototype.update = function(){
     }
     
     if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
+        Animation.free(this.attack);
         this.attack = null;
     }else if (!this.attack && this.playerAction){
         this.playerAction = false;
@@ -981,22 +1235,45 @@ MapManager.prototype.update = function(){
     
     
 };
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_Player":13,"./kt_Kramtech":18}],13:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Animation":6,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_Player":13,"./kt_Kramtech":18}],13:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 var ItemFactory = require('./d_ItemFactory');
 
-function Player(oMapManager, oSprite, oPosition, oPartyMember){
-    Actor.call(this, oMapManager, oSprite, oPosition);
+function Player(){
+    Actor.call(this);
     
     this._player = true;
-    this.partyMember = oPartyMember;
+    this.partyMember = null;
 }
 
 Player.prototype = Object.create(Actor.prototype);
 
 module.exports = Player;
+
+Player.memLoc = [];
+Player.preAllocate = function(iAmount){
+    Player.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Player.memLoc.push(new Player(null, ''));
+    }
+};
+
+Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
+    if (Player.memLoc.length == 0) throw "Out of Player instances.";
+    
+    var player = Player.memLoc.pop();
+    player.init(oMapManager, oSprite, x, y);
+    player.partyMember = oPartyMember;
+    
+    return player;
+};
+
+Player.free = function(oPlayer){
+    Player.memLoc.push(oPlayer);
+};
 
 Player.prototype.doAct = function(){
     this.mapManager.playerAction = true;
@@ -1041,10 +1318,10 @@ Player.prototype.attackTo = function(oEnemy){
         return;
     }
     
-    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.name);
+    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name);
     
     var thus = this;
-    this.mapManager.createAttack(new Animation(this.mapManager, this.game.sprites.at_slice, oEnemy.position.clone(), function(){
+    this.mapManager.createAttack(Animation.allocate(this.mapManager, this.game.sprites.at_slice, oEnemy.position.x, oEnemy.position.y, function(){
         var dmg = thus.game.rollDice(thus.partyMember.atk);
         oEnemy.receiveDamage(dmg);
     }), oEnemy );
@@ -1118,10 +1395,20 @@ var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
 
 module.exports = {
-    drag: null,
+    drag: {
+        item: null,
+        anchor: null,
+        slot: 0,
+        fullDrag: false
+    },
     lastClick: 0,
     lastMousePosition: null,
     lastSlot: -1,
+    
+    init: function(){
+        this.drag.anchor = KT.Vector2.allocate(0, 0);
+        this.lastMousePosition = KT.Vector2.allocate(-1, 0);
+    },
     
     drawoPlayerStats: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
@@ -1159,7 +1446,7 @@ module.exports = {
             }
         }
         
-        if (this.drag){
+        if (this.drag.item){
             item = this.drag.item;
             var pos = KT.Input.mouse.position;
             
@@ -1178,7 +1465,7 @@ module.exports = {
     },
     
     pickFromInventory: function(oGame, oPlayer){
-        if (this.drag) return;
+        if (this.drag.item) return;
         var pos = KT.Input.mouse.position;
         
         var slot = ((pos.x - 237) / 38) << 0;
@@ -1196,47 +1483,40 @@ module.exports = {
             KT.Input.mouse.status = 2;
             this.lastClick = 0;
             this.lastSlot = -1;
-            this.lastMousePosition = null;
+            this.lastMousePosition.set(-1, 0);
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition == null && KT.Input.mouse.status == 1){
+        if (this.lastMousePosition.x != -1 && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }
         
-        if (this.lastMousePosition != null && !this.lastMousePosition.equalsVector2(pos)){
+        if (this.lastMousePosition.x != -1 && !this.lastMousePosition.equalsVector2(pos)){
             var fullDrag = true;
             if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
                 var oldItem = item;
-                item = {};
+                item = ItemFactory.allocate(oldItem.ref, 1, oldItem.status);
                 
-                for (var i in oldItem){
-                    item[i] = oldItem[i];
-                }
-                
-                item.amount = 1;
                 oldItem.amount -= 1;
                 fullDrag = false;
             }else{
                 oPlayer.items[slot] = null;
             }
             
-            this.drag = {
-                item: item,
-                anchor: new KT.Vector2(pos.x - (slot * 38 + 237), pos.y - 432),
-                slot: slot,
-                fullDrag: fullDrag
-            };
+            this.drag.item = item;
+            this.drag.anchor.set(pos.x - (slot * 38 + 237), pos.y - 432);
+            this.drag.slot = slot;
+            this.drag.fullDrag = fullDrag;
             
-            this.lastMousePosition = null;
+            this.lastMousePosition.set(-1, 0);
             this.lastSlot = -1;
             this.lastClick = 0;
         }else{
-            this.lastMousePosition = pos.clone();
+            this.lastMousePosition.set(pos.x, pos.y);
             if (this.lastSlot == -1) this.lastSlot = slot;
         }
     },
@@ -1248,17 +1528,19 @@ module.exports = {
         if (this.drag.fullDrag && oPlayer.items[slot] && oPlayer.items[slot].ref.code != this.drag.item.ref.code){
             oPlayer.items[this.drag.slot] = oPlayer.items[slot];
             oPlayer.items[slot] = this.drag.item;
-            this.drag = null;
+            this.drag.item = null;
             return;
         }
-        
+        var preSlot = oPlayer.items[slot];
         var item = oPlayer.addItemToSlot(this.drag.item, slot);
         if (item){
             item = oPlayer.addItemToSlot(this.drag.item, this.drag.slot);
             if (item) throw "Da fuq";
+        }else if (preSlot){
+            ItemFactory.free(this.drag.item);
         }
         
-        this.drag = null;
+        this.drag.item = null;
     },
     
     checkAction: function(oGame){
@@ -1275,20 +1557,20 @@ module.exports = {
         }
         
         if (Input.isMouseUp()){
-            if (this.lastMousePosition != null){
-                this.lastMousePosition = null;
+            if (this.lastMousePosition.x != -1){
+                this.lastMousePosition.set(-1, 0);
                 this.lastSlot = -1;
                 this.lastClick = 10;
             }
             
-            if (this.drag != null){
+            if (this.drag.item != null){
                 if (onInventory){
                     this.releaseDrag(oGame, player);
                 }else{
                     player.addItemToSlot(this.drag.item, this.drag.slot);
                 }
                 
-                this.drag = null;
+                this.drag.item = null;
             }
         }
     }
@@ -1298,7 +1580,14 @@ var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
 var PlayerStats = require('./d_PlayerStats');
+var ItemFactory = require('./d_ItemFactory');
+var EnemyFactory = require('./d_EnemyFactory');
+var Player = require('./g_Player');
+var Enemy = require('./g_Enemy');
+var Item = require('./g_Item');
 var UI = require('./g_UI');
+var FloatText = require('./g_FloatText');
+var Animation = require('./g_Animation');
 
 function Underworld(elDiv){
     var width = 854;
@@ -1355,19 +1644,21 @@ Underworld.prototype.loadTileset = function(tileset){
 };
 
 Underworld.prototype.loadImages = function(){
-    var centerOr = new KT.Vector2(16, 16);
+    var centerOr = KT.Vector2.allocate(16, 16);
+    var Sprite = KT.Sprite;
     
-    this.sprites.f_font = KT.Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
     
-    this.sprites.ui_map = KT.Sprite.loadSprite('img/ui/sprMapUI.png');
-    this.sprites.ui_inventory = KT.Sprite.loadSprite('img/ui/sprInventory.png');
+    this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
+    this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
     
-    this.sprites.player = KT.Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
-    this.sprites.bat = KT.Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
+    this.sprites.player = Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
+    this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
+
+    this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
+    this.sprites.particles_8x8 = Sprite.loadSprite('img/particles/sprParticles_8x8.png', 8, 8);
     
-    this.sprites.items = KT.Sprite.loadSprite('img/items/sprItems.png', 32, 32);
-    
-    this.sprites.at_slice = KT.Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
+    this.sprites.at_slice = Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
 };
 
 Underworld.prototype.createSurface = function(iWidth, iHeight){
@@ -1387,7 +1678,7 @@ Underworld.prototype.checkReadyData = function(){
 
 Underworld.prototype.newGame = function(){
     this.maps = [];
-    this.map = new MapManager(this, 'testMap');
+    this.map = MapManager.allocate(this, 'testMap');
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
@@ -1441,6 +1732,8 @@ Underworld.prototype.update = function(){
 };
 
 KT.Utils.addEvent(window, 'load', function(){
+    preloadMemory();
+    
     var game = new Underworld(KT.Utils.get("divGame"));
     
     var wait = function(){
@@ -1453,6 +1746,20 @@ KT.Utils.addEvent(window, 'load', function(){
     
     wait();
 });
+
+function preloadMemory(){
+    KT.Vector2.preAllocate(100);
+    ItemFactory.preAllocate(10);
+    EnemyFactory.preAllocate(10);
+    MapManager.preAllocate(10);
+    Player.preAllocate(1);
+    Enemy.preAllocate(10);
+    Item.preAllocate(10);
+    FloatText.preAllocate(5);
+    Animation.preAllocate(3);
+    
+    UI.init();
+}
 
 var requestAnimFrame = (function(){
   return  window.requestAnimationFrame       ||
@@ -1470,7 +1777,7 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_PlayerStats":3,"./g_Console":7,"./g_MapManager":12,"./g_UI":14,"./kt_Kramtech":18}],16:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./d_PlayerStats":3,"./g_Animation":6,"./g_Console":7,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_MapManager":12,"./g_Player":13,"./g_UI":14,"./kt_Kramtech":18}],16:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -1710,8 +2017,8 @@ KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
 },{"./kt_Canvas":16,"./kt_Input":17,"./kt_Sprite":19,"./kt_Utils":20,"./kt_Vector2":21}],19:[function(require,module,exports){
-var Utils = require('./kt_Utils')
-var Vector2 = require('./kt_Vector2')
+var Utils = require('./kt_Utils');
+var Vector2 = require('./kt_Vector2');
 
 module.exports = {
     loadSprite: function(sFilename, iSprWidth, iSprHeight, oParams){
@@ -1723,7 +2030,7 @@ module.exports = {
         img.sprHeight = iSprHeight;
         img.ready = false;
         
-        img.origin = (oParams.origin)? oParams.origin : new Vector2(0, 0);
+        img.origin = (oParams.origin)? oParams.origin : Vector2.allocate(0, 0);
         
         Utils.addEvent(img, "load", function(){
             if (!img.sprWidth) img.sprWidth = img.width;
@@ -1858,9 +2165,31 @@ function Vector2(x, y){
 	
 	this.x = x;
 	this.y = y;
-};
+}
 
 module.exports = Vector2;
+
+Vector2.memLoc = [];
+Vector2.preAllocate = function(iAmount){
+	Vector2.memLoc = [];
+	
+	for (var i=0;i<iAmount;i++){
+		Vector2.memLoc.push(new Vector2(0, 0));
+	}
+};
+
+Vector2.allocate = function(x, y){
+	if (Vector2.memLoc.length == 0) throw "Out of Vector2 instances.";
+	
+	var vector2 = Vector2.memLoc.pop();
+	vector2.set(x, y);
+	
+	return vector2;
+};
+
+Vector2.free = function(oVector2){
+	Vector2.memLoc.push(oVector2);
+};
 
 Vector2.prototype.length = function(){
 	var length = Math.sqrt(this.x * this.x + this.y * this.y);
@@ -1927,7 +2256,7 @@ Vector2.prototype.set = function(x, y){
 };
 
 Vector2.prototype.clone = function(){
-	return new Vector2(this.x, this.y);
+	return Vector2.allocate(this.x, this.y);
 };
 
 Vector2.prototype.equals = function(x, y){
@@ -1944,13 +2273,13 @@ Vector2.vectorsDifference = function(vector2_a, vector2_b){
 	if (!vector2_a.__ktv2) throw "Can only create this vector using 2 vectors2";
 	if (!vector2_b.__ktv2) throw "Can only create this vector using 2 vectors2";
 	
-	return new Vector2(vector2_a.x - vector2_b.x, vector2_a.y - vector2_b.y);
+	return Vector2.allocate(vector2_a.x - vector2_b.x, vector2_a.y - vector2_b.y);
 };
 
 Vector2.fromAngle = function(radian){
 	var x = Math.cos(radian);
 	var y = -Math.sin(radian);
 	
-	return new Vector2(x, y);
+	return Vector2.allocate(x, y);
 };
 },{}]},{},[15]);

@@ -3,24 +3,55 @@ var Effect = require('./g_Effect');
 var ActorEffect = require('./e_ActorEffects');
 
 module.exports = {
+    memLoc: [],
+    
     items: {
-        sword: {name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
+        sword: { name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: {name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
         
-        torch: {name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
+        torch: { name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
+    },
+    
+    preAllocate: function(iAmount){
+        this.memLoc = [];
+        
+        for (var i=0;i<iAmount;i++){
+            this.memLoc.push({
+                ref: null,
+                amount: 0,
+                status: 0
+            });
+        }
+    },
+    
+    allocate: function(oRef, iAmount, fStatus){
+        if (this.memLoc.length == 0) throw "Out of Item Factory instances.";
+        
+        var item = this.memLoc.pop();
+        
+        item.ref = oRef;
+        item.amount = iAmount;
+        item.status = fStatus;
+        
+        return item;
+    },
+    
+    free: function(oItem){
+        oItem.ref = null;
+        this.memLoc.push(oItem);
     },
     
     getItem: function(itemCode, amount, status){
         var item = this.items[itemCode];
         if (!item) throw "Invalid item code: " + itemCode;
         
-        var ret = {
-            ref: item
-        };
+        if (!amount) amount = 1;
+        if (!status) status = -1;
         
-        if (item.type != 'misc') ret.amount = Math.min(amount, 5);
-        if (item.type == 'weapon') ret.status = status;
+        amount = Math.min(amount, 5);
+        
+        var ret = this.allocate(item, amount, status);
         
         return ret;
     },
@@ -40,7 +71,7 @@ module.exports = {
     },
     
     activateEffect: function(oGame, oItem, oTarget){
-        var effect = this.items[oItem.ref.code].onUse;
+        var effect = oItem.onUse;
         
         switch (effect.type){
             case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;

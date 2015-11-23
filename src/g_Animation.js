@@ -1,9 +1,47 @@
 var KT = require('./kt_Kramtech');
 
-function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
+function Animation(){
+    this.mapManager = null;
+    this.sprite = null;
+    this.position = KT.Vector2.allocate(0, 0);
+    
+    this.onAnimationEnd = null;
+    
+    this.imageIndex = 0;
+    this.imageSpeed = 1 / 2;
+    
+    this.destroyed = false;
+    this._animation = true;
+}
+
+module.exports = Animation;
+
+Animation.memLoc = [];
+Animation.preAllocate = function(iAmount){
+    Animation.memLoc = [];
+    
+    for (var i=0;i<iAmount;i++){
+        Animation.memLoc.push(new Animation());
+    }
+};
+
+Animation.allocate = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
+    if (Animation.memLoc.length == 0) throw "Out of Animation instances.";
+    
+    var animation = Animation.memLoc.pop();
+    animation.init(oMapManager, oSprite, x, y, fOnAnimationEnd);
+    
+    return animation;
+};
+
+Animation.free = function(oFloatText){
+    Animation.memLoc.push(oFloatText);
+};
+
+Animation.prototype.init = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
     this.mapManager = oMapManager;
     this.sprite = oSprite;
-    this.position = oPosition;
+    this.position.set(x, y);
     
     this.onAnimationEnd = fOnAnimationEnd;
     
@@ -11,9 +49,7 @@ function Animation(oMapManager, oSprite, oPosition, fOnAnimationEnd){
     this.imageSpeed = 1 / 2;
     
     this.destroyed = false;
-}
-
-module.exports = Animation;
+};
 
 Animation.prototype.draw = function(oCtx, view){
     if (this.destroyed) return;

@@ -3,9 +3,31 @@ function Vector2(x, y){
 	
 	this.x = x;
 	this.y = y;
-};
+}
 
 module.exports = Vector2;
+
+Vector2.memLoc = [];
+Vector2.preAllocate = function(iAmount){
+	Vector2.memLoc = [];
+	
+	for (var i=0;i<iAmount;i++){
+		Vector2.memLoc.push(new Vector2(0, 0));
+	}
+};
+
+Vector2.allocate = function(x, y){
+	if (Vector2.memLoc.length == 0) throw "Out of Vector2 instances.";
+	
+	var vector2 = Vector2.memLoc.pop();
+	vector2.set(x, y);
+	
+	return vector2;
+};
+
+Vector2.free = function(oVector2){
+	Vector2.memLoc.push(oVector2);
+};
 
 Vector2.prototype.length = function(){
 	var length = Math.sqrt(this.x * this.x + this.y * this.y);
@@ -72,7 +94,7 @@ Vector2.prototype.set = function(x, y){
 };
 
 Vector2.prototype.clone = function(){
-	return new Vector2(this.x, this.y);
+	return Vector2.allocate(this.x, this.y);
 };
 
 Vector2.prototype.equals = function(x, y){
@@ -89,12 +111,12 @@ Vector2.vectorsDifference = function(vector2_a, vector2_b){
 	if (!vector2_a.__ktv2) throw "Can only create this vector using 2 vectors2";
 	if (!vector2_b.__ktv2) throw "Can only create this vector using 2 vectors2";
 	
-	return new Vector2(vector2_a.x - vector2_b.x, vector2_a.y - vector2_b.y);
+	return Vector2.allocate(vector2_a.x - vector2_b.x, vector2_a.y - vector2_b.y);
 };
 
 Vector2.fromAngle = function(radian){
 	var x = Math.cos(radian);
 	var y = -Math.sin(radian);
 	
-	return new Vector2(x, y);
+	return Vector2.allocate(x, y);
 };
