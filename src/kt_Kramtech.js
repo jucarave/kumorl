@@ -2,6 +2,7 @@ var KT = {};
 
 window.empt = {};
 
+KT.BoxCollision = require('./kt_BoxCollision');
 KT.Canvas = require('./kt_Canvas');
 KT.Input = require('./kt_Input');
 KT.Sprite = require('./kt_Sprite');

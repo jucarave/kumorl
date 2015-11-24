@@ -98,7 +98,7 @@ Player.prototype.pickItem = function(oItem){
     
     if (dx > 0 || dy > 0){
         var name = oItem.item.ref.name.toLowerCase();
-        if (oItem.item.status !== undefined){
+        if (oItem.item.status != -1){
             name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
         }
         

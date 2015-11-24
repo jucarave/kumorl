@@ -12,6 +12,8 @@ function Actor(){
     this.target = KT.Vector2.allocate(-1, 0);
     this.moving = false;
     
+    this.collision = new KT.BoxCollision(0, 0, 1, 1);
+    
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
@@ -39,6 +41,8 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
     this.target.set(-1, 0);
     this.moving = false;
     
+    this.collision.update(x, y);
+    
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
@@ -50,9 +54,7 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
 
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
-    if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isSolidCollision(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isSolid(this, this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
@@ -83,6 +85,7 @@ Actor.prototype.finishMovement = function(){
     this.position.z = 0;
     this.target.set(-1, 0);
     
+    this.collision.update(this.position.x, this.position.y);
     if (this.afterMovement) this.afterMovement();
 };
 
@@ -108,6 +111,8 @@ Actor.prototype.updateMovement = function(){
         this.position.y -= 0.2;
         if (this.target.y >= this.position.y){ this.finishMovement(); }
     }
+    
+    this.collision.update(this.position.x, this.position.y);
 };
 
 Actor.prototype.destroy = function(){

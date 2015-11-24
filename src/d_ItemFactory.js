@@ -1,6 +1,11 @@
 var Vector2 = require('./kt_Vector2.js');
-var Effect = require('./g_Effect');
 var ActorEffect = require('./e_ActorEffects');
+
+function Effect(iType, sName, sValue){
+    this.type = iType;
+    this.name = sName;
+    this.value = sValue;
+}
 
 module.exports = {
     memLoc: [],
@@ -8,7 +13,7 @@ module.exports = {
     items: {
         sword: { name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(1, 'heal', 30) },
         
         torch: { name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -74,7 +79,7 @@ module.exports = {
         var effect = oItem.onUse;
         
         switch (effect.type){
-            case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;
+            case 1: ActorEffect.execute(oGame, effect, oTarget); break;
         }
     }
 };

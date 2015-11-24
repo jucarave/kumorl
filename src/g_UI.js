@@ -81,7 +81,7 @@ module.exports = {
         if (!item){ return; }
         
         var name = item.ref.name.toLowerCase();
-        if (item.status !== undefined){
+        if (item.status !== -1){
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
@@ -97,7 +97,7 @@ module.exports = {
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition.x != -1 && KT.Input.mouse.status == 1){
+        if (this.lastMousePosition.x == -1 && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }

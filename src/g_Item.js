@@ -10,6 +10,8 @@ function Item(){
     this._item = true;
     this.solid = false;
     
+    this.collision = new KT.BoxCollision(0, 0, 1, 1);
+    
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
 }
@@ -46,6 +48,8 @@ Item.prototype.init = function(oMapManager, x, y, oItem, oParams){
     this.destroyed = false;
     this._item = true;
     this.solid = this.item.ref.solid;
+    
+    this.collision.update(x, y);
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;

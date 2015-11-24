@@ -29,7 +29,6 @@ module.exports = {
     },
     
     free: function(oEnemy){
-        console.log("HAIO");
         oEnemy.ref = null;
         this.memLoc.push(oEnemy);
     },

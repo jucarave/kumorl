@@ -26,7 +26,6 @@ function Underworld(elDiv){
     this.maps = [];
     this.map = null;
     this.sprites = {};
-    this.tileset = [];
     this.party = [];
     
     this.fps = 1000 / 30;
@@ -35,41 +34,13 @@ function Underworld(elDiv){
     this.loadImages();
 }
 
-Underworld.prototype.loadTileset = function(tileset){
-    var jlen = tileset.length;
-    for (var i=0;i<this.tileset.length;i++){
-        var found = false;
-        for (var j=0,tile;j<jlen;j++){
-            tile = tileset[j];
-            if (this.tileset[i].name == tile.name){
-                tileset.splice(j, 1);
-                found = true;
-                j = jlen;
-            }
-        }
-        
-        if (!found){
-            this.tileset.splice(i, 1);
-        }
-    }
-    
-    jlen = tileset.length;
-    for (j=0;j<jlen;j++){
-        tile = tileset[j];
-        this.tileset.push({
-            name: tile.name,
-            sprite: KT.Sprite.loadSprite('img/' + tile.path, 32, 32),
-            index: tile.index,
-            solid: tile.solid
-        });
-    }
-};
-
 Underworld.prototype.loadImages = function(){
     var centerOr = KT.Vector2.allocate(16, 16);
     var Sprite = KT.Sprite;
     
     this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
+    this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');

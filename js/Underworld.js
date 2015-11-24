@@ -30,7 +30,6 @@ module.exports = {
     },
     
     free: function(oEnemy){
-        console.log("HAIO");
         oEnemy.ref = null;
         this.memLoc.push(oEnemy);
     },
@@ -46,8 +45,13 @@ module.exports = {
 };
 },{}],2:[function(require,module,exports){
 var Vector2 = require('./kt_Vector2.js');
-var Effect = require('./g_Effect');
 var ActorEffect = require('./e_ActorEffects');
+
+function Effect(iType, sName, sValue){
+    this.type = iType;
+    this.name = sName;
+    this.value = sValue;
+}
 
 module.exports = {
     memLoc: [],
@@ -55,7 +59,7 @@ module.exports = {
     items: {
         sword: { name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
         
-        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(Effect.Actor, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(1, 'heal', 30) },
         
         torch: { name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -121,11 +125,11 @@ module.exports = {
         var effect = oItem.onUse;
         
         switch (effect.type){
-            case Effect.Actor: ActorEffect.execute(oGame, effect, oTarget); break;
+            case 1: ActorEffect.execute(oGame, effect, oTarget); break;
         }
     }
 };
-},{"./e_ActorEffects":4,"./g_Effect":8,"./kt_Vector2.js":21}],3:[function(require,module,exports){
+},{"./e_ActorEffects":5,"./kt_Vector2.js":22}],3:[function(require,module,exports){
 var ItemFactory = require('./d_ItemFactory');
 
 function PlayerStats(oGame){
@@ -217,6 +221,33 @@ PlayerStats.prototype.useItem = function(iSlot){
     return false;
 };
 },{"./d_ItemFactory":2}],4:[function(require,module,exports){
+function TileDefinition(x, y, solid){
+    this.x = x;
+    this.y = y;
+    this.solid = solid;
+}
+
+module.exports = {
+    tiles: {
+        dungeon: [
+            null,
+            new TileDefinition(0, 0, true),
+            new TileDefinition(1, 0, true),
+            null,
+            null,
+            new TileDefinition(0, 1, false),
+            new TileDefinition(1, 1, false),
+            new TileDefinition(2, 1, false),
+            new TileDefinition(3, 1, false),
+            new TileDefinition(0, 2, false),
+            new TileDefinition(1, 2, false),
+            new TileDefinition(2, 2, false),
+            null,
+            null
+        ]
+    }
+};
+},{}],5:[function(require,module,exports){
 module.exports = {
     healCharacter: function(oGame, oTarget, iAmount){
         oTarget.hp = Math.min(oTarget.mHp, oTarget.hp + iAmount);
@@ -229,7 +260,7 @@ module.exports = {
         }
     }
 };
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Actor(){
@@ -243,6 +274,8 @@ function Actor(){
     
     this.target = KT.Vector2.allocate(-1, 0);
     this.moving = false;
+    
+    this.collision = new KT.BoxCollision(0, 0, 1, 1);
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
@@ -271,6 +304,8 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
     this.target.set(-1, 0);
     this.moving = false;
     
+    this.collision.update(x, y);
+    
     this.imageIndex = 0;
     this.imageSpeed = 1 / 8;
     
@@ -282,9 +317,7 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
 
 Actor.prototype.moveTo = function(xTo, yTo){
     if (this.moving) return false;
-    if (this.mapManager.isSolid(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isSolidCollision(this.position.x + xTo, this.position.y + yTo)) return true;
-    if (this.mapManager.isPlayerCollision(this.position.x + xTo, this.position.y + yTo)) return true;
+    if (this.mapManager.isSolid(this, this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
@@ -315,6 +348,7 @@ Actor.prototype.finishMovement = function(){
     this.position.z = 0;
     this.target.set(-1, 0);
     
+    this.collision.update(this.position.x, this.position.y);
     if (this.afterMovement) this.afterMovement();
 };
 
@@ -340,6 +374,8 @@ Actor.prototype.updateMovement = function(){
         this.position.y -= 0.2;
         if (this.target.y >= this.position.y){ this.finishMovement(); }
     }
+    
+    this.collision.update(this.position.x, this.position.y);
 };
 
 Actor.prototype.destroy = function(){
@@ -358,7 +394,7 @@ Actor.prototype.update = function(){
     
     this.updateMovement();
 };
-},{"./kt_Kramtech":18}],6:[function(require,module,exports){
+},{"./kt_Kramtech":19}],7:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(){
@@ -434,7 +470,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":18}],7:[function(require,module,exports){
+},{"./kt_Kramtech":19}],8:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -483,17 +519,7 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":18}],8:[function(require,module,exports){
-function Effect(iType, sName, sValue){
-    this.type = iType;
-    this.name = sName;
-    this.value = sValue;
-}
-
-module.exports = Effect;
-
-Effect.Actor = 1;
-},{}],9:[function(require,module,exports){
+},{"./kt_Kramtech":19}],9:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var EnemyFactory = require('./d_EnemyFactory');
 var KT = require('./kt_Kramtech');
@@ -584,7 +610,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_EnemyFactory":1,"./g_Actor":5,"./kt_Kramtech":18}],10:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./g_Actor":6,"./kt_Kramtech":19}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function FloatText(){
@@ -665,7 +691,7 @@ FloatText.prototype.update = function(){
 };
 
 
-},{"./kt_Kramtech":18}],11:[function(require,module,exports){
+},{"./kt_Kramtech":19}],11:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Item(){
@@ -677,6 +703,8 @@ function Item(){
     this.destroyed = false;
     this._item = true;
     this.solid = false;
+    
+    this.collision = new KT.BoxCollision(0, 0, 1, 1);
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
@@ -714,6 +742,8 @@ Item.prototype.init = function(oMapManager, x, y, oItem, oParams){
     this.destroyed = false;
     this._item = true;
     this.solid = this.item.ref.solid;
+    
+    this.collision.update(x, y);
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 4;
@@ -761,7 +791,7 @@ Item.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":18}],12:[function(require,module,exports){
+},{"./kt_Kramtech":19}],12:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
@@ -770,6 +800,7 @@ var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
+var TileFactory = require('./d_TileFactory');
 
 function MapManager(oGame, sMapName){
     this.view = KT.Vector2.allocate(0, 0);
@@ -814,6 +845,9 @@ MapManager.prototype.initMap = function(oGame, sMapName){
     this.visible = null;
     this.cleared = false;
     
+    this.tileset = null;
+    this.tiledef = null;
+    
     this.instances = [];
     this.instancesFront = [];
     this.lights = [];
@@ -821,43 +855,11 @@ MapManager.prototype.initMap = function(oGame, sMapName){
     
     this.playerAction = false;
     
-    this.tilesLoc = [];
     this.view.set(0, 0);
     this.prevView.set(-1, 0);
 
     this.ready = false;
     if (sMapName) this.loadMap(sMapName);
-};
-
-MapManager.prototype.parseTilesLocation = function(oTileset){
-    var floor = Math.floor;
-    
-    for (var i=0,len=oTileset.length;i<len;i++){
-        var tile = oTileset[i];
-        
-        var ind = 0;
-        for (var j=tile.index[0];j<=tile.index[1];j++){
-            this.tilesLoc[j] = {
-                sprIndex: i,
-                x: (ind % tile.hNum),
-                y: floor(ind / tile.hNum)
-            };
-            
-            ind += 1;
-        }
-    }
-};
-
-MapManager.prototype.isTilesetReady = function(){
-    if (this.ready == 2) return true;
-    
-    for (var i=0,len=this.game.tileset.length;i<len;i++){
-        var t = this.game.tileset[i];
-        if (!t.sprite.ready) return false;
-    }
-    
-    this.ready = 2;
-    return true;
 };
 
 MapManager.prototype.loadMap = function(sMapName){
@@ -875,8 +877,8 @@ MapManager.prototype.loadMap = function(sMapName){
             thus.visible[i] = new Uint8ClampedArray(64);
         }
         
-        thus.game.loadTileset(map.tileset);
-        thus.parseTilesLocation(map.tileset);
+        thus.tileset = thus.game.sprites[map.tileset];
+        thus.tiledef = TileFactory.tiles[map.tileset];
         
         for (var i=0,len=map.items.length;i<len;i++){
             var item = map.items[i];
@@ -896,45 +898,43 @@ MapManager.prototype.loadMap = function(sMapName){
 
 MapManager.prototype.isVisible = function(x, y){
     var t = this.visible[y << 0][x << 0];
-    if (t < 2)
-        return false;
-    
-    return true;
+    return (t >= 2);
 };
 
-MapManager.prototype.isSolid = function(x, y){
+MapManager.prototype.getTile = function(x, y){
     var t = this.map[y << 0][x << 0];
-    if (t == 0) return true;
+    if (t == 0) return null;
     
-    var loc = this.tilesLoc[t];
-    return this.game.tileset[loc.sprIndex].solid;
+    return this.tiledef[t];
 };
 
-MapManager.prototype.isSolidCollision = function(x, y){
+MapManager.prototype.instanceCollision = function(oEntity){
     for (var i=0,len=this.instances.length;i<len;i++){
-        if (!this.instances[i].solid) continue;
-        var e = this.instances[i].position;
+        var ins = this.instances[i];
         
-        if (e.x >= x + 1) continue;
-        if (e.x + 1 <= x) continue;
-        if (e.y >= y + 1) continue;
-        if (e.y + 1 <= y) continue;
-        
+        if (ins.solid && ins != oEntity && ins.collision.collidesWithBox(oEntity.collision))
+            return true;
+    }
+    
+    if (this.player != oEntity && this.player.collision.collidesWithBox(oEntity.collision)){
+        oEntity.collision.update(oEntity.position.x, oEntity.position.y);
         return true;
     }
     
     return false;
 };
 
-MapManager.prototype.isPlayerCollision = function(x, y){
-    var p = this.player.position;
+MapManager.prototype.isSolid = function(oEntity, xTo, yTo){
+    var tile = this.getTile(xTo, yTo);
+    if (tile && tile.solid) return true;
     
-    if (p.x >= x + 1) return false;
-    if (p.x + 1 <= x) return false;
-    if (p.y >= y + 1) return false;
-    if (p.y + 1 <= y) return false;
+    oEntity.collision.update(xTo, yTo);
+    if (this.instanceCollision(oEntity)){
+        oEntity.collision.update(oEntity.position.x, oEntity.position.y);
+        return true;
+    }
     
-    return true;
+    return false;
 };
 
 MapManager.prototype.getInstanceAt = function(x, y){
@@ -1004,7 +1004,8 @@ MapManager.prototype.clearVisibleMap = function(){
             var cx = rx << 0;
             var cy = ry << 0;
                 
-            if (thus.isSolid(cx, cy)){
+            var tile = thus.getTile(cx, cy);
+            if (tile && tile.solid){
                 return false;
             }else if (lx == cx && ly == cy){
                 return true;
@@ -1059,7 +1060,8 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
                 thus.visible[cy][cx] = 2 + dim;
             }
             
-            if (thus.isSolid(cx, cy)){
+            var tile = thus.getTile(cx, cy);
+            if (tile && tile.solid){
                 j = iDistance;
                 continue;
             }
@@ -1114,7 +1116,8 @@ MapManager.prototype.drawAutoMap = function(x, y){
     ctx.fillStyle = "rgb(51,47,32)";
     for (var yy=0;yy<64;yy++){
         for (var xx=0;xx<64;xx++){
-            if (this.isSolid(xx, yy) && this.visible[yy][xx] > 0){
+            var tile = this.getTile(xx, yy);
+            if (tile && tile.solid && this.visible[yy][xx] > 0){
                 ctx.fillRect(xx*2,yy*2,2,2);
             }
         }
@@ -1165,9 +1168,9 @@ MapManager.prototype.drawMap = function(){
             var cx = (x - this.view.x) * 32; 
             var cy = (y - this.view.y) * 32;
             
-            var loc = this.tilesLoc[t];
-            var sprite = this.game.tileset[loc.sprIndex].sprite;
-            drawSprite(ctx, sprite, cx, cy, loc.x, loc.y);
+            var tile = this.tiledef[t];
+            var sprite = this.tileset;
+            drawSprite(ctx, sprite, cx, cy, tile.x, tile.y);
             
             if (v == 1){
                 ctx.fillStyle = "rgba(4,4,15,0.7)";
@@ -1187,8 +1190,7 @@ MapManager.prototype.drawMap = function(){
 };
 
 MapManager.prototype.update = function(){
-    if (!this.isTilesetReady()) return;
-    
+    if (!this.ready) return;
     var ctx = this.game.ctx;
     
     this.prevView.copy(this.view);
@@ -1235,7 +1237,7 @@ MapManager.prototype.update = function(){
     
     
 };
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./g_Animation":6,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_Player":13,"./kt_Kramtech":18}],13:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./d_TileFactory":4,"./g_Animation":7,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_Player":13,"./kt_Kramtech":19}],13:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
@@ -1336,7 +1338,7 @@ Player.prototype.pickItem = function(oItem){
     
     if (dx > 0 || dy > 0){
         var name = oItem.item.ref.name.toLowerCase();
-        if (oItem.item.status !== undefined){
+        if (oItem.item.status != -1){
             name = ItemFactory.getStatusName(oItem.item.status) + ' ' + name;
         }
         
@@ -1390,7 +1392,7 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_ItemFactory":2,"./g_Actor":5,"./g_Animation":6,"./kt_Kramtech":18}],14:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./g_Actor":6,"./g_Animation":7,"./kt_Kramtech":19}],14:[function(require,module,exports){
 var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
 
@@ -1474,7 +1476,7 @@ module.exports = {
         if (!item){ return; }
         
         var name = item.ref.name.toLowerCase();
-        if (item.status !== undefined){
+        if (item.status !== -1){
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
@@ -1490,7 +1492,7 @@ module.exports = {
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition.x != -1 && KT.Input.mouse.status == 1){
+        if (this.lastMousePosition.x == -1 && KT.Input.mouse.status == 1){
             oGame.console.addMessage(msg + ' ' + name);
             KT.Input.mouse.status = 2;
         }
@@ -1575,7 +1577,7 @@ module.exports = {
         }
     }
 };
-},{"./d_ItemFactory":2,"./kt_Kramtech.js":18}],15:[function(require,module,exports){
+},{"./d_ItemFactory":2,"./kt_Kramtech.js":19}],15:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
@@ -1604,7 +1606,6 @@ function Underworld(elDiv){
     this.maps = [];
     this.map = null;
     this.sprites = {};
-    this.tileset = [];
     this.party = [];
     
     this.fps = 1000 / 30;
@@ -1613,41 +1614,13 @@ function Underworld(elDiv){
     this.loadImages();
 }
 
-Underworld.prototype.loadTileset = function(tileset){
-    var jlen = tileset.length;
-    for (var i=0;i<this.tileset.length;i++){
-        var found = false;
-        for (var j=0,tile;j<jlen;j++){
-            tile = tileset[j];
-            if (this.tileset[i].name == tile.name){
-                tileset.splice(j, 1);
-                found = true;
-                j = jlen;
-            }
-        }
-        
-        if (!found){
-            this.tileset.splice(i, 1);
-        }
-    }
-    
-    jlen = tileset.length;
-    for (j=0;j<jlen;j++){
-        tile = tileset[j];
-        this.tileset.push({
-            name: tile.name,
-            sprite: KT.Sprite.loadSprite('img/' + tile.path, 32, 32),
-            index: tile.index,
-            solid: tile.solid
-        });
-    }
-};
-
 Underworld.prototype.loadImages = function(){
     var centerOr = KT.Vector2.allocate(16, 16);
     var Sprite = KT.Sprite;
     
     this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    
+    this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
@@ -1777,7 +1750,32 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./d_PlayerStats":3,"./g_Animation":6,"./g_Console":7,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_MapManager":12,"./g_Player":13,"./g_UI":14,"./kt_Kramtech":18}],16:[function(require,module,exports){
+},{"./d_EnemyFactory":1,"./d_ItemFactory":2,"./d_PlayerStats":3,"./g_Animation":7,"./g_Console":8,"./g_Enemy":9,"./g_FloatText":10,"./g_Item":11,"./g_MapManager":12,"./g_Player":13,"./g_UI":14,"./kt_Kramtech":19}],16:[function(require,module,exports){
+function BoxCollision(x, y, w, h){
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    
+    this._boxCollision = true;
+}
+
+module.exports = BoxCollision;
+
+BoxCollision.prototype.collidesWithBox = function(oBox){
+    if (oBox.x + oBox.w <= this.x) return false;
+    if (oBox.x >= this.x + this.w) return false;
+    if (oBox.y + oBox.h <= this.y) return false;
+    if (oBox.y >= this.y + this.h) return false;
+    
+    return true;
+};
+
+BoxCollision.prototype.update = function(x, y){
+    this.x = x;
+    this.y = y;
+};
+},{}],17:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -1864,7 +1862,7 @@ module.exports = {
         }
     }
 };
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2004,11 +2002,12 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":20,"./kt_Vector2":21}],18:[function(require,module,exports){
+},{"./kt_Utils":21,"./kt_Vector2":22}],19:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
 
+KT.BoxCollision = require('./kt_BoxCollision');
 KT.Canvas = require('./kt_Canvas');
 KT.Input = require('./kt_Input');
 KT.Sprite = require('./kt_Sprite');
@@ -2016,7 +2015,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_Canvas":16,"./kt_Input":17,"./kt_Sprite":19,"./kt_Utils":20,"./kt_Vector2":21}],19:[function(require,module,exports){
+},{"./kt_BoxCollision":16,"./kt_Canvas":17,"./kt_Input":18,"./kt_Sprite":20,"./kt_Utils":21,"./kt_Vector2":22}],20:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2100,7 +2099,7 @@ module.exports = {
         return width - 1;
     }
 };
-},{"./kt_Utils":20,"./kt_Vector2":21}],20:[function(require,module,exports){
+},{"./kt_Utils":21,"./kt_Vector2":22}],21:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -2159,7 +2158,7 @@ module.exports = {
 		return ang;
 	}
 };
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	

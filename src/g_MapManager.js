@@ -6,6 +6,7 @@ var Item = require('./g_Item');
 var ItemFactory = require('./d_ItemFactory');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
+var TileFactory = require('./d_TileFactory');
 
 function MapManager(oGame, sMapName){
     this.view = KT.Vector2.allocate(0, 0);
@@ -50,6 +51,9 @@ MapManager.prototype.initMap = function(oGame, sMapName){
     this.visible = null;
     this.cleared = false;
     
+    this.tileset = null;
+    this.tiledef = null;
+    
     this.instances = [];
     this.instancesFront = [];
     this.lights = [];
@@ -57,43 +61,11 @@ MapManager.prototype.initMap = function(oGame, sMapName){
     
     this.playerAction = false;
     
-    this.tilesLoc = [];
     this.view.set(0, 0);
     this.prevView.set(-1, 0);
 
     this.ready = false;
     if (sMapName) this.loadMap(sMapName);
-};
-
-MapManager.prototype.parseTilesLocation = function(oTileset){
-    var floor = Math.floor;
-    
-    for (var i=0,len=oTileset.length;i<len;i++){
-        var tile = oTileset[i];
-        
-        var ind = 0;
-        for (var j=tile.index[0];j<=tile.index[1];j++){
-            this.tilesLoc[j] = {
-                sprIndex: i,
-                x: (ind % tile.hNum),
-                y: floor(ind / tile.hNum)
-            };
-            
-            ind += 1;
-        }
-    }
-};
-
-MapManager.prototype.isTilesetReady = function(){
-    if (this.ready == 2) return true;
-    
-    for (var i=0,len=this.game.tileset.length;i<len;i++){
-        var t = this.game.tileset[i];
-        if (!t.sprite.ready) return false;
-    }
-    
-    this.ready = 2;
-    return true;
 };
 
 MapManager.prototype.loadMap = function(sMapName){
@@ -111,8 +83,8 @@ MapManager.prototype.loadMap = function(sMapName){
             thus.visible[i] = new Uint8ClampedArray(64);
         }
         
-        thus.game.loadTileset(map.tileset);
-        thus.parseTilesLocation(map.tileset);
+        thus.tileset = thus.game.sprites[map.tileset];
+        thus.tiledef = TileFactory.tiles[map.tileset];
         
         for (var i=0,len=map.items.length;i<len;i++){
             var item = map.items[i];
@@ -132,45 +104,43 @@ MapManager.prototype.loadMap = function(sMapName){
 
 MapManager.prototype.isVisible = function(x, y){
     var t = this.visible[y << 0][x << 0];
-    if (t < 2)
-        return false;
-    
-    return true;
+    return (t >= 2);
 };
 
-MapManager.prototype.isSolid = function(x, y){
+MapManager.prototype.getTile = function(x, y){
     var t = this.map[y << 0][x << 0];
-    if (t == 0) return true;
+    if (t == 0) return null;
     
-    var loc = this.tilesLoc[t];
-    return this.game.tileset[loc.sprIndex].solid;
+    return this.tiledef[t];
 };
 
-MapManager.prototype.isSolidCollision = function(x, y){
+MapManager.prototype.instanceCollision = function(oEntity){
     for (var i=0,len=this.instances.length;i<len;i++){
-        if (!this.instances[i].solid) continue;
-        var e = this.instances[i].position;
+        var ins = this.instances[i];
         
-        if (e.x >= x + 1) continue;
-        if (e.x + 1 <= x) continue;
-        if (e.y >= y + 1) continue;
-        if (e.y + 1 <= y) continue;
-        
+        if (ins.solid && ins != oEntity && ins.collision.collidesWithBox(oEntity.collision))
+            return true;
+    }
+    
+    if (this.player != oEntity && this.player.collision.collidesWithBox(oEntity.collision)){
+        oEntity.collision.update(oEntity.position.x, oEntity.position.y);
         return true;
     }
     
     return false;
 };
 
-MapManager.prototype.isPlayerCollision = function(x, y){
-    var p = this.player.position;
+MapManager.prototype.isSolid = function(oEntity, xTo, yTo){
+    var tile = this.getTile(xTo, yTo);
+    if (tile && tile.solid) return true;
     
-    if (p.x >= x + 1) return false;
-    if (p.x + 1 <= x) return false;
-    if (p.y >= y + 1) return false;
-    if (p.y + 1 <= y) return false;
+    oEntity.collision.update(xTo, yTo);
+    if (this.instanceCollision(oEntity)){
+        oEntity.collision.update(oEntity.position.x, oEntity.position.y);
+        return true;
+    }
     
-    return true;
+    return false;
 };
 
 MapManager.prototype.getInstanceAt = function(x, y){
@@ -240,7 +210,8 @@ MapManager.prototype.clearVisibleMap = function(){
             var cx = rx << 0;
             var cy = ry << 0;
                 
-            if (thus.isSolid(cx, cy)){
+            var tile = thus.getTile(cx, cy);
+            if (tile && tile.solid){
                 return false;
             }else if (lx == cx && ly == cy){
                 return true;
@@ -295,7 +266,8 @@ MapManager.prototype.castLight = function(oPosition, iDistance){
                 thus.visible[cy][cx] = 2 + dim;
             }
             
-            if (thus.isSolid(cx, cy)){
+            var tile = thus.getTile(cx, cy);
+            if (tile && tile.solid){
                 j = iDistance;
                 continue;
             }
@@ -350,7 +322,8 @@ MapManager.prototype.drawAutoMap = function(x, y){
     ctx.fillStyle = "rgb(51,47,32)";
     for (var yy=0;yy<64;yy++){
         for (var xx=0;xx<64;xx++){
-            if (this.isSolid(xx, yy) && this.visible[yy][xx] > 0){
+            var tile = this.getTile(xx, yy);
+            if (tile && tile.solid && this.visible[yy][xx] > 0){
                 ctx.fillRect(xx*2,yy*2,2,2);
             }
         }
@@ -401,9 +374,9 @@ MapManager.prototype.drawMap = function(){
             var cx = (x - this.view.x) * 32; 
             var cy = (y - this.view.y) * 32;
             
-            var loc = this.tilesLoc[t];
-            var sprite = this.game.tileset[loc.sprIndex].sprite;
-            drawSprite(ctx, sprite, cx, cy, loc.x, loc.y);
+            var tile = this.tiledef[t];
+            var sprite = this.tileset;
+            drawSprite(ctx, sprite, cx, cy, tile.x, tile.y);
             
             if (v == 1){
                 ctx.fillStyle = "rgba(4,4,15,0.7)";
@@ -423,8 +396,7 @@ MapManager.prototype.drawMap = function(){
 };
 
 MapManager.prototype.update = function(){
-    if (!this.isTilesetReady()) return;
-    
+    if (!this.ready) return;
     var ctx = this.game.ctx;
     
     this.prevView.copy(this.view);
