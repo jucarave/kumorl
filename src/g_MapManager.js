@@ -7,6 +7,10 @@ var ItemFactory = require('./d_ItemFactory');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var TileFactory = require('./d_TileFactory');
+var Event = require('./g_Event');
+var Enum = require('./d_Enum');
+var MapTurn = Enum.MAP;
+var EventType = Enum.EVENT;
 
 function MapManager(oGame, sMapName){
     this.view = KT.Vector2.allocate(0, 0);
@@ -56,14 +60,16 @@ MapManager.prototype.initMap = function(oGame, sMapName){
     
     this.instances = [];
     this.instancesFront = [];
+    this.eventStack = [];
     this.lights = [];
-    this.attack = null;
-    
-    this.playerAction = false;
     
     this.view.set(0, 0);
     this.prevView.set(-1, 0);
 
+    this.prevTurn = -1;
+    this.turn = MapTurn.PLAYER_TURN;
+    this.turnCount = 0;
+    
     this.ready = false;
     if (sMapName) this.loadMap(sMapName);
 };
@@ -94,6 +100,9 @@ MapManager.prototype.loadMap = function(sMapName){
         thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0]);
         
         var e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 4, EnemyFactory.getEnemy('bat'));
+        thus.instances.push(e);
+        
+        e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 2, EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);
         
         thus.ready = true;
@@ -155,11 +164,35 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
+MapManager.prototype.endTurn = function(){
+    switch (this.turn){
+        case MapTurn.PLAYER_TURN:
+            this.turn = MapTurn.WORLD_TURN;
+            break;
+        
+        case MapTurn.WORLD_TURN:
+            if (++this.turnCount >= this.instances.length + this.instancesFront.length){
+                this.turn = MapTurn.PLAYER_TURN;
+                this.turnCount = 0;
+            }
+            break;
+        
+        case MapTurn.EVENT_TURN:
+            var event = this.eventStack.splice(0, 1);
+            this.destroyInstance(event[0]);
+            if (this.eventStack.length == 0){
+                this.turn = this.prevTurn;
+            }
+            break;
+    }
+};
+
 MapManager.prototype.destroyInstance = function(instance){
     if (instance._item){ Item.free(instance); }else
     if (instance._floattext){ FloatText.free(instance); }else
     if (instance._animation){ Animation.free(instance); }else
-    if (instance._enemy){ Enemy.free(instance); }
+    if (instance._enemy){ Enemy.free(instance); }else
+    if (instance._event){ Event.free(instance); }
     else{ console.log(instance); throw "Da phuq"; } 
 };
 
@@ -168,10 +201,15 @@ MapManager.prototype.createFloatText = function(sText, x, y){
     this.instancesFront.push(fText);
 };
 
-MapManager.prototype.createAttack = function(oAnimation, target){
-    this.instances.push(oAnimation);
-    this.attack = oAnimation;
-    this.attack.target = target;
+MapManager.prototype.createAttack = function(oTarget, iDmg, sAttackSprite){
+    var spr = this.game.sprites['at_' + sAttackSprite];
+    var animation = Animation.allocate(this.mapManager, spr, oTarget.position.x, oTarget.position.y);
+    
+    this.eventStack.push(Event.allocate(this, EventType.PLAY_ANIMATION, animation));
+    this.eventStack.push(Event.allocate(this, EventType.CAST_DAMAGE, oTarget, [iDmg]));
+    
+    this.prevTurn = this.turn;
+    this.turn = MapTurn.EVENT_TURN;
 };
 
 MapManager.prototype.inView = function(oPosition){
@@ -343,7 +381,7 @@ MapManager.prototype.drawMap = function(){
     this.view.x =  (this.player.position.x - (this.view.width / 2));
     this.view.y = (this.player.position.y - (this.view.height / 2));
     
-    if (this.view.equalsVector2(this.prevView) && !this.playerAction && !this.cleared){
+    if (this.view.equalsVector2(this.prevView) && !this.cleared){
         ctx = this.game.ctx;
         ctx.drawImage(this.game.mapSurface.canvas, 0, 0);
         
@@ -395,51 +433,43 @@ MapManager.prototype.drawMap = function(){
     this.cleared = false;
 };
 
+MapManager.prototype.updateInstances = function(oInstancesList){
+    var ins;
+    var ctx = this.game.ctx;
+    
+    for (var i=0,len=oInstancesList.length;i<len;i++){
+        ins = oInstancesList[i];
+        if (ins.destroyed){
+            this.destroyInstance(oInstancesList.splice(i, 1)[0]);
+            len = oInstancesList.length;
+            i--;
+            continue;
+        }
+        
+        oInstancesList[i].update();
+        oInstancesList[i].draw(ctx, this.view);
+    }
+};
+
+MapManager.prototype.updateEvents = function(){
+    if (this.eventStack.length > 0){
+        this.eventStack[0].update(this.game.ctx, this.view);
+        
+        if (this.eventStack[0].destroyed){
+            this.endTurn();
+        }
+    }
+};
+
 MapManager.prototype.update = function(){
     if (!this.ready) return;
     var ctx = this.game.ctx;
     
     this.prevView.copy(this.view);
-    
     this.player.update();
-    
     this.drawMap();
-    
-    var ins;
-    for (var i=0,len=this.instances.length;i<len;i++){
-        ins = this.instances[i];
-        if (ins.destroyed){
-            this.destroyInstance(this.instances.splice(i, 1)[0]);
-            len = this.instances.length;
-            i--;
-            continue;
-        }
-        
-        this.instances[i].update();
-        this.instances[i].draw(ctx, this.view);
-    }
-    
+    this.updateInstances(this.instances);
     this.player.draw(ctx, this.view);
-    
-    for (i=0,len=this.instancesFront.length;i<len;i++){
-        ins = this.instancesFront[i];
-        if (ins.destroyed){
-            this.destroyInstance(this.instancesFront.splice(i, 1)[0]);
-            len = this.instancesFront.length;
-            i--;
-            continue;
-        }
-        
-        this.instancesFront[i].update();
-        this.instancesFront[i].draw(ctx, this.view);
-    }
-    
-    if (this.attack && this.attack.destroyed && this.attack.target.blink == -1){
-        Animation.free(this.attack);
-        this.attack = null;
-    }else if (!this.attack && this.playerAction){
-        this.playerAction = false;
-    }
-    
-    
+    this.updateInstances(this.instancesFront);
+    this.updateEvents();
 };

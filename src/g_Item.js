@@ -1,4 +1,5 @@
 var KT = require('./kt_Kramtech');
+var MapTurn = require('./d_Enum').MAP;
 
 function Item(){
     this.mapManager = null;
@@ -95,5 +96,9 @@ Item.prototype.update = function(){
         if (this.imageIndex >= this.item.ref.imageNum){
             this.imageIndex = 0;
         }
+    }
+    
+    if (this.mapManager.turn == MapTurn.WORLD_TURN){
+        this.mapManager.endTurn();
     }
 };

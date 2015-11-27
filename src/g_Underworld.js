@@ -10,6 +10,7 @@ var Item = require('./g_Item');
 var UI = require('./g_UI');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
+var Event = require('./g_Event');
 
 function Underworld(elDiv){
     var width = 854;
@@ -150,6 +151,7 @@ function preloadMemory(){
     Item.preAllocate(10);
     FloatText.preAllocate(5);
     Animation.preAllocate(3);
+    Event.preAllocate(5);
     
     UI.init();
 }

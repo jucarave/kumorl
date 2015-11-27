@@ -1,4 +1,5 @@
 var KT = require('./kt_Kramtech');
+var ActorState = require('./d_Enum').ACTOR;
 
 function Actor(){
     this.mapManager = null;
@@ -10,7 +11,7 @@ function Actor(){
     this.scale = KT.Vector2.allocate(1, 1);
     
     this.target = KT.Vector2.allocate(-1, 0);
-    this.moving = false;
+    this.state = ActorState.STANDING;
     
     this.collision = new KT.BoxCollision(0, 0, 1, 1);
     
@@ -39,7 +40,7 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
     this.scale.set(1, 1);
     
     this.target.set(-1, 0);
-    this.moving = false;
+    this.state = ActorState.STANDING;
     
     this.collision.update(x, y);
     
@@ -53,13 +54,13 @@ Actor.prototype.init = function(oMapManager, oSprite, x, y){
 };
 
 Actor.prototype.moveTo = function(xTo, yTo){
-    if (this.moving) return false;
+    if (this.state != ActorState.STANDING) return false;
     if (this.mapManager.isSolid(this, this.position.x + xTo, this.position.y + yTo)) return true;
     
     if (xTo != 0) this.scale.x = xTo;
     
     this.target.set(this.position.x + xTo, this.position.y + yTo);
-    this.moving = true;
+    this.state = ActorState.MOVING;
     
     return true;
 };
@@ -80,7 +81,7 @@ Actor.prototype.draw = function(oCtx, oView){
 };
 
 Actor.prototype.finishMovement = function(){
-    this.moving = false;
+    this.state = ActorState.END_TURN;
     this.position.copy(this.target);
     this.position.z = 0;
     this.target.set(-1, 0);
@@ -90,8 +91,6 @@ Actor.prototype.finishMovement = function(){
 };
 
 Actor.prototype.updateMovement = function(){
-    if (!this.moving) return;
-    
     if ((this.target.x != this.position.x && Math.abs(this.target.x - this.position.x) <= 0.5) || 
         (this.target.y != this.position.y && Math.abs(this.target.y - this.position.y) <= 0.5))
         this.position.z -= 0.5;
@@ -127,7 +126,17 @@ Actor.prototype.update = function(){
         }
     }
     
-    if (this.blink >= 0) this.blink -= 1;
-    
-    this.updateMovement();
+    switch (this.state){
+        case ActorState.MOVING: 
+            this.updateMovement(); 
+            break;
+            
+        case ActorState.DAMAGE:
+            if (this.blink >= 0){ 
+                this.blink -= 1;
+            }else{
+                this.state = ActorState.STANDING;
+            }
+            break;
+    }
 };

@@ -1,4 +1,3 @@
-var Vector2 = require('./kt_Vector2.js');
 var ActorEffect = require('./e_ActorEffects');
 
 function Effect(iType, sName, sValue){
@@ -7,15 +6,20 @@ function Effect(iType, sName, sValue){
     this.value = sValue;
 }
 
+function Position(x, y){
+    this.x = x;
+    this.y = y;
+}
+
 module.exports = {
     memLoc: [],
     
     items: {
-        sword: { name: 'Sword', code: 'sword', imageIndex: new Vector2(1, 0), type: 'weapon' },
+        sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), type: 'weapon' },
         
-        potion: { name: 'Red potion', code: 'potion', imageIndex: new Vector2(2, 0), type: 'item', stack: true, onUse: new Effect(1, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: new Effect(1, 'heal', 30) },
         
-        torch: { name: 'Torch', code: 'torch', imageIndex: new Vector2(3, 0), imageNum: 3, type: 'misc', solid: true }
+        torch: { name: 'Torch', code: 'torch', imageIndex: new Position(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
     
     preAllocate: function(iAmount){
@@ -75,11 +79,10 @@ module.exports = {
         }
     },
     
-    activateEffect: function(oGame, oItem, oTarget){
-        var effect = oItem.onUse;
+    activateEffect: function(oGame, oEffect, oTarget){
         
-        switch (effect.type){
-            case 1: ActorEffect.execute(oGame, effect, oTarget); break;
+        switch (oEffect.type){
+            case 1: ActorEffect.execute(oGame, oEffect, oTarget); break;
         }
     }
 };

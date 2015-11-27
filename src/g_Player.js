@@ -2,6 +2,9 @@ var Actor = require('./g_Actor');
 var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 var ItemFactory = require('./d_ItemFactory');
+var Enum = require('./d_Enum');
+var ActorState = Enum.ACTOR;
+var MapTurn = Enum.MAP;
 
 function Player(){
     Actor.call(this);
@@ -37,19 +40,12 @@ Player.free = function(oPlayer){
     Player.memLoc.push(oPlayer);
 };
 
-Player.prototype.doAct = function(){
-    this.mapManager.playerAction = true;
-    
+Player.prototype.endTurn = function(){
     var position = this.position;
     if (this.target.x != -1) position = this.target;
     
-    this.mapManager.clearVisibleMap();
-    this.mapManager.castLight(position, 5);
-};
-
-Player.prototype.afterMovement = function(){
-    var position = this.position;
-    if (this.target.x != -1) position = this.target;
+    this.state = ActorState.STANDING;
+    this.mapManager.endTurn();
     
     this.mapManager.clearVisibleMap();
     this.mapManager.castLight(position, 5);
@@ -65,8 +61,7 @@ Player.prototype.checkMovement = function(){
     if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
-        if (this.moveTo(xTo, yTo))
-            this.doAct();
+        this.moveTo(xTo, yTo);
     }
 };
 
@@ -82,11 +77,10 @@ Player.prototype.attackTo = function(oEnemy){
     
     this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name);
     
-    var thus = this;
-    this.mapManager.createAttack(Animation.allocate(this.mapManager, this.game.sprites.at_slice, oEnemy.position.x, oEnemy.position.y, function(){
-        var dmg = thus.game.rollDice(thus.partyMember.atk);
-        oEnemy.receiveDamage(dmg);
-    }), oEnemy );
+    var dmg = this.game.rollDice(this.partyMember.atk);
+    this.mapManager.createAttack(oEnemy, dmg, 'slice');
+    
+    this.state = ActorState.END_TURN;
 };
 
 Player.prototype.pickItem = function(oItem){
@@ -113,6 +107,8 @@ Player.prototype.pickItem = function(oItem){
         oItem.item = null;
         oItem.destroyed = true;
     }
+    
+    this.state = ActorState.END_TURN;
 };
 
 Player.prototype.checkAction = function(){
@@ -129,25 +125,37 @@ Player.prototype.checkAction = function(){
         if (instance){
             if (instance._enemy) this.attackTo(instance);
             if (instance._item) this.pickItem(instance);
+        }else{
+            this.state = ActorState.END_TURN;
         }
         
         Input.mouse.status = 2;
-        this.doAct();
     }
 };
 
 Player.prototype.checkInput = function(){
     var Input = KT.Input;
     
-    if (Input.isKeyDown(Input.vKeys.SPACE)){ return this.doAct(); }
+    if (Input.isKeyDown(Input.vKeys.SPACE)){ 
+        this.state = ActorState.END_TURN; 
+        return;
+    }
     
     this.checkMovement();
     this.checkAction();
 };
 
 Player.prototype.update = function(){
-    if (!this.mapManager.playerAction && !this.mapManager.attack){
-        this.checkInput();
+    if (this.mapManager.turn == MapTurn.PLAYER_TURN){
+        switch (this.state){
+            case ActorState.STANDING:
+                this.checkInput();
+                break;
+            
+            case ActorState.END_TURN:
+                this.endTurn();
+                break;
+        }
     }
     
     Actor.prototype.update.call(this);

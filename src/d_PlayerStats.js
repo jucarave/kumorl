@@ -69,7 +69,7 @@ PlayerStats.prototype.addItemToSlot = function(oItem, iSlot){
 
 PlayerStats.prototype.useItem = function(iSlot){
     var item = this.items[iSlot];
-    var effect = item.onUse;
+    var effect = item.ref.onUse;
     
     if (item.ref.stack && item.amount){
         this.game.console.addMessage(item.ref.name + ' used');
@@ -82,7 +82,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     }
     
     if (effect){
-        ItemFactory.activateEffect(this.game, item, this);
+        ItemFactory.activateEffect(this.game, effect, this);
         return true;
     }
     
