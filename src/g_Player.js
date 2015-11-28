@@ -1,5 +1,4 @@
 var Actor = require('./g_Actor');
-var Animation = require('./g_Animation');
 var KT = require('./kt_Kramtech');
 var ItemFactory = require('./d_ItemFactory');
 var Enum = require('./d_Enum');
@@ -32,6 +31,7 @@ Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
     var player = Player.memLoc.pop();
     player.init(oMapManager, oSprite, x, y);
     player.partyMember = oPartyMember;
+    player.partyMember.position = player.position;
     
     return player;
 };

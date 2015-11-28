@@ -70,5 +70,11 @@ Event.prototype.update = function(oCtx, oView){
                 this.destroyed = true;
             }
             break;
+            
+        case EventType.HEAL_ACTOR:
+            this.target.hp = Math.min(this.target.mHp, this.target.hp + this.params[0]);
+            this.mapManager.game.console.addToLast(', recovered ' + this.params[0] + ' hp');
+            this.destroyed = true;
+            break;
     }
 };

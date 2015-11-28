@@ -28,7 +28,6 @@ PlayerStats.prototype.addItem = function(oItem){
             var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
-                ItemFactory.free(oItem);
                 this.game.console.addMessage(name + " picked!");
                 return true;
             }else{
@@ -82,7 +81,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     }
     
     if (effect){
-        ItemFactory.activateEffect(this.game, effect, this);
+        ItemFactory.activateEffect(this.game.map, effect, this);
         return true;
     }
     

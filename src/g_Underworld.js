@@ -52,7 +52,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
     this.sprites.particles_8x8 = Sprite.loadSprite('img/particles/sprParticles_8x8.png', 8, 8);
     
-    this.sprites.at_slice = Sprite.loadSprite('img/attacks/sprASlice.png', 32, 32);
+    this.sprites.animations = Sprite.loadSprite('img/animations/sprAnimations.png', 32, 32);
 };
 
 Underworld.prototype.createSurface = function(iWidth, iHeight){
@@ -143,14 +143,14 @@ KT.Utils.addEvent(window, 'load', function(){
 
 function preloadMemory(){
     KT.Vector2.preAllocate(100);
-    ItemFactory.preAllocate(10);
+    ItemFactory.preAllocate(20);
     EnemyFactory.preAllocate(10);
     MapManager.preAllocate(10);
     Player.preAllocate(1);
     Enemy.preAllocate(10);
-    Item.preAllocate(10);
-    FloatText.preAllocate(5);
-    Animation.preAllocate(3);
+    Item.preAllocate(20);
+    FloatText.preAllocate(3);
+    Animation.preAllocate(1);
     Event.preAllocate(5);
     
     UI.init();

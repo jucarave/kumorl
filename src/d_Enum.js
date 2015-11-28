@@ -15,6 +15,7 @@ module.exports = {
     EVENT: {
         PLAY_ANIMATION: 0,
         CAST_DAMAGE: 1,
-        WAIT_ACTOR: 2
+        WAIT_ACTOR: 2,
+        HEAL_ACTOR: 3
     }
 };

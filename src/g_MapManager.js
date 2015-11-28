@@ -8,6 +8,7 @@ var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var TileFactory = require('./d_TileFactory');
 var Event = require('./g_Event');
+var AnimationFactory = require('./d_Animation');
 var Enum = require('./d_Enum');
 var MapTurn = Enum.MAP;
 var EventType = Enum.EVENT;
@@ -201,12 +202,22 @@ MapManager.prototype.createFloatText = function(sText, x, y){
     this.instancesFront.push(fText);
 };
 
-MapManager.prototype.createAttack = function(oTarget, iDmg, sAttackSprite){
-    var spr = this.game.sprites['at_' + sAttackSprite];
-    var animation = Animation.allocate(this.mapManager, spr, oTarget.position.x, oTarget.position.y);
+MapManager.prototype.createAttack = function(oTarget, iDmg, sAttack){
+    var spr = this.game.sprites.animations;
+    var imgInd = AnimationFactory[sAttack];
+    var animation = Animation.allocate(this.mapManager, spr, oTarget.position.x, oTarget.position.y, imgInd);
     
-    this.eventStack.push(Event.allocate(this, EventType.PLAY_ANIMATION, animation));
-    this.eventStack.push(Event.allocate(this, EventType.CAST_DAMAGE, oTarget, [iDmg]));
+    var events = [];
+    events.push(Event.allocate(this, EventType.PLAY_ANIMATION, animation));
+    events.push(Event.allocate(this, EventType.CAST_DAMAGE, oTarget, [iDmg]));
+    
+    this.setEvents(events);
+};
+
+MapManager.prototype.setEvents = function(events){
+    for (var i=0,len=events.length;i<len;i++){
+        this.eventStack.push(events[i]);
+    }
     
     this.prevTurn = this.turn;
     this.turn = MapTurn.EVENT_TURN;

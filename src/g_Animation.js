@@ -25,11 +25,11 @@ Animation.preAllocate = function(iAmount){
     }
 };
 
-Animation.allocate = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
+Animation.allocate = function(oMapManager, oSprite, x, y, oImageInd){
     if (Animation.memLoc.length == 0) throw "Out of Animation instances.";
     
     var animation = Animation.memLoc.pop();
-    animation.init(oMapManager, oSprite, x, y, fOnAnimationEnd);
+    animation.init(oMapManager, oSprite, x, y, oImageInd);
     
     return animation;
 };
@@ -38,12 +38,13 @@ Animation.free = function(oFloatText){
     Animation.memLoc.push(oFloatText);
 };
 
-Animation.prototype.init = function(oMapManager, oSprite, x, y, fOnAnimationEnd){
+Animation.prototype.init = function(oMapManager, oSprite, x, y, oImageInd){
     this.mapManager = oMapManager;
     this.sprite = oSprite;
     this.position.set(x, y);
     
-    this.onAnimationEnd = fOnAnimationEnd;
+    this.animationInd = oImageInd;
+    this.imgLength = oImageInd.length / 2;
     
     this.imageIndex = 0;
     this.imageSpeed = 1 / 2;
@@ -60,15 +61,16 @@ Animation.prototype.draw = function(oCtx, view){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > view.width || vy > view.height) return;
     
-    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), this.imageIndex, 0);
+    var imx = this.animationInd[(this.imageIndex << 0) * 2];
+    var imy = this.animationInd[(this.imageIndex << 0) * 2 + 1];
+    
+    KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), imx, imy);
 };
 
 Animation.prototype.update = function(){
     if (!this.moving){
         this.imageIndex += this.imageSpeed;
-        if (this.imageIndex >= this.sprite.hNum){
-            if (this.onAnimationEnd)
-                this.onAnimationEnd();
+        if (this.imageIndex >= this.imgLength){
             this.destroyed = true;
         }
     }
