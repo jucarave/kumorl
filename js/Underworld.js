@@ -1754,6 +1754,14 @@ module.exports = {
         this.drag.item = null;
     },
     
+    destroyItem: function(oGame, oPlayer){
+        oGame.console.addMessage(this.drag.item.ref.name + ' destroyed', 'yellow');
+        
+        ItemFactory.free(this.drag.item);
+        oPlayer.items[this.drag.slot] = null;
+        this.drag.item = null;
+    },
+    
     checkAction: function(oGame){
         if (this.lastClick > 0) this.lastClick -= 1;
         
@@ -1778,7 +1786,8 @@ module.exports = {
                 if (onInventory){
                     this.releaseDrag(oGame, player);
                 }else{
-                    player.addItemToSlot(this.drag.item, this.drag.slot);
+                    //player.addItemToSlot(this.drag.item, this.drag.slot);
+                    this.destroyItem(oGame, player);
                 }
                 
                 this.drag.item = null;
@@ -1845,7 +1854,6 @@ Underworld.prototype.loadImages = function(){
     this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
 
     this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
-    this.sprites.particles_8x8 = Sprite.loadSprite('img/particles/sprParticles_8x8.png', 8, 8);
     
     this.sprites.animations = Sprite.loadSprite('img/animations/sprAnimations.png', 32, 32);
 };

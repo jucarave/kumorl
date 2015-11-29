@@ -150,6 +150,14 @@ module.exports = {
         this.drag.item = null;
     },
     
+    destroyItem: function(oGame, oPlayer){
+        oGame.console.addMessage(this.drag.item.ref.name + ' destroyed', 'yellow');
+        
+        ItemFactory.free(this.drag.item);
+        oPlayer.items[this.drag.slot] = null;
+        this.drag.item = null;
+    },
+    
     checkAction: function(oGame){
         if (this.lastClick > 0) this.lastClick -= 1;
         
@@ -174,7 +182,8 @@ module.exports = {
                 if (onInventory){
                     this.releaseDrag(oGame, player);
                 }else{
-                    player.addItemToSlot(this.drag.item, this.drag.slot);
+                    //player.addItemToSlot(this.drag.item, this.drag.slot);
+                    this.destroyItem(oGame, player);
                 }
                 
                 this.drag.item = null;
