@@ -56,7 +56,7 @@ Enemy.prototype.receiveDamage = function(iDmg){
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.mapManager.createFloatText(dmg + '', this.position.x, this.position.y);
+    this.mapManager.createFloatText(dmg + '', this.position.x, this.position.y, 'red');
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     this.state = ActorState.DAMAGE;

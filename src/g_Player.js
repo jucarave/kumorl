@@ -75,7 +75,7 @@ Player.prototype.attackTo = function(oEnemy){
         return;
     }
     
-    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name);
+    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name, 'red');
     
     var dmg = this.game.rollDice(this.partyMember.atk);
     this.mapManager.createAttack(oEnemy, dmg, 'slice');
@@ -99,7 +99,7 @@ Player.prototype.pickItem = function(oItem){
         var msg = "You see a";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        this.game.console.addMessage(msg + ' ' + name);
+        this.game.console.addMessage(msg + ' ' + name, 'aqua');
         return;
     }
     

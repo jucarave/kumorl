@@ -197,8 +197,8 @@ MapManager.prototype.destroyInstance = function(instance){
     else{ console.log(instance); throw "Da phuq"; } 
 };
 
-MapManager.prototype.createFloatText = function(sText, x, y){
-    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true);
+MapManager.prototype.createFloatText = function(sText, x, y, oColor){
+    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true, oColor);
     this.instancesFront.push(fText);
 };
 

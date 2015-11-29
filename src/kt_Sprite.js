@@ -29,7 +29,7 @@ module.exports = {
         return img;
     },
     
-    parseFont: function(oImg){
+    parseFont: function(oImg, oColors){
         var canvas = document.createElement("canvas");
         canvas.width = oImg.width;
         canvas.height = oImg.height;
@@ -38,16 +38,18 @@ module.exports = {
         
         ctx.drawImage(oImg, 0, 0);
         
-        var imgData = ctx.getImageData(0, 0, oImg.width, oImg.height);
+        var imgData = ctx.getImageData(0, 0, oImg.width, 1);
         var data = imgData.data;
         
         oImg.charasWidth = [];
         
         var width = 0;
-        for (var i=0,len=oImg.width*4;i<len;i+=4){
-            var r = data[i];
-            var g = data[i + 1];
-            var b = data[i + 2];
+        var baseColor, r, g, b;
+        var i, len;
+        for (i=0,len=oImg.width*4;i<len;i+=4){
+            r = data[i];
+            g = data[i + 1];
+            b = data[i + 2];
             
             if (r == 255 && g == 0 && b == 255){
                 width += 1;
@@ -56,11 +58,43 @@ module.exports = {
                 width = 0;
             }
         }
+        
+        oImg.colors = {};
+        for (var j=0,jlen=oColors.length;j<jlen;j++){
+            baseColor = ctx.getImageData(0, 0, oImg.width, oImg.height);
+            for (i=0,len=baseColor.data.length;i<len;i+=4){
+                r = baseColor.data[i];
+                g = baseColor.data[i + 1];
+                b = baseColor.data[i + 2];
+                
+                if (r == 255 && g == 255 && b == 255){
+                    baseColor.data[i] = oColors[j][1];
+                    baseColor.data[i + 1] = oColors[j][2];
+                    baseColor.data[i + 2] = oColors[j][3];
+                }
+            }
+            
+            var texture = document.createElement("canvas");
+            texture.width = oImg.width;
+            texture.height = oImg.height;
+            texture.sprWidth = oImg.sprWidth;
+            texture.sprHeight = oImg.sprHeight;
+            texture.ready = true;
+            texture.origin = oImg.origin;
+            texture.offsetY = oImg.offsetY;
+            texture.hNum = oImg.hNum; 
+            texture.vNum = oImg.vNum;
+            
+            var tCtx = texture.getContext("2d");
+            tCtx.putImageData(baseColor, 0, 0);
+            
+            oImg.colors[oColors[j][0]] = texture;
+        }
     },
     
-    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList){
+    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList, oColors){
         var thus = this;
-        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg); }});
+        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg, oColors); }});
         sprite.charactersList = sCharactersList;
         sprite.offsetY = 1;
         

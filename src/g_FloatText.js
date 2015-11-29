@@ -7,6 +7,7 @@ function FloatText(){
     this.lifetime = 0;
     this.floatUp = false;
     this.font = null;
+    this.color = null;
     
     this.destroyed = false;
     this._floattext = true;
@@ -23,11 +24,11 @@ FloatText.preAllocate = function(iAmount){
     }
 };
 
-FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor){
     if (FloatText.memLoc.length == 0) throw "Out of FloatText instances.";
     
     var text = FloatText.memLoc.pop();
-    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp);
+    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor);
     
     return text;
 };
@@ -36,13 +37,14 @@ FloatText.free = function(oFloatText){
     FloatText.memLoc.push(oFloatText);
 };
 
-FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor){
     this.mapManager = oMapManager;
     this.position.set(x, y);
     this.text = sText;
     this.lifetime = iLifetime;
     this.floatUp = bFloatUp;
     this.font = oFont;
+    this.color = sColor;
     
     this.fixPosition();
     
@@ -63,7 +65,7 @@ FloatText.prototype.draw = function(oCtx, oView){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > oView.width || vy > oView.height) return;
     
-    KT.Canvas.drawSpriteText(oCtx, this.text, this.font, vx * 32, vy * 32);
+    KT.Canvas.drawSpriteText(oCtx, this.text, this.font, vx * 32, vy * 32, this.color);
 };
 
 FloatText.prototype.update = function(){

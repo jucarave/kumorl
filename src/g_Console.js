@@ -17,8 +17,8 @@ function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
 
 module.exports = Console;
 
-Console.prototype.addMessage = function(sText){
-    this.messages.push(sText);
+Console.prototype.addMessage = function(sText, sColor){
+    this.messages.push({text: sText, color: sColor});
     
     if (this.messages.length > this.maxMessages){
         this.messages.splice(0, 1);
@@ -28,7 +28,7 @@ Console.prototype.addMessage = function(sText){
 };
 
 Console.prototype.addToLast = function(sText){
-    this.messages[this.messages.length - 1] += sText;
+    this.messages[this.messages.length - 1].text += sText;
     this.preRender();
 };
 
@@ -39,7 +39,7 @@ Console.prototype.preRender = function(){
     for (var i=0,len=this.messages.length;i<len;i++){
         var m = this.messages[i];
         
-        Canvas.drawSpriteText(this.ctx, m, this.font, 0, i * this.font.height);
+        Canvas.drawSpriteText(this.ctx, m.text, this.font, 0, i * this.font.height, m.color);
     }
 };
 

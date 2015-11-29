@@ -28,7 +28,7 @@ PlayerStats.prototype.addItem = function(oItem){
             var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
-                this.game.console.addMessage(name + " picked!");
+                this.game.console.addMessage(name + " picked!", 'yellow');
                 return true;
             }else{
                 continue;
@@ -36,7 +36,7 @@ PlayerStats.prototype.addItem = function(oItem){
         }
         
         this.items[i] = oItem;
-        this.game.console.addMessage(oItem.ref.name + " picked!");
+        this.game.console.addMessage(oItem.ref.name + " picked!", 'yellow');
         
         return true;
     }
@@ -71,7 +71,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     var effect = item.ref.onUse;
     
     if (item.ref.stack && item.amount){
-        this.game.console.addMessage(item.ref.name + ' used');
+        this.game.console.addMessage(item.ref.name + ' used', 'yellow');
         if (--item.amount == 0){ 
             ItemFactory.free(item);
             this.items[iSlot] = null; 

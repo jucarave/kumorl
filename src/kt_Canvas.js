@@ -68,10 +68,13 @@ module.exports = {
         oCtx.restore();
     },
     
-    drawSpriteText: function(oCtx, sText, oFont, x, y){
+    drawSpriteText: function(oCtx, sText, oFont, x, y, sColor){
         if (!oFont.ready) return;
         
         var xx = x;
+        
+        var spr = oFont;
+        if (sColor) spr = spr.colors[sColor];
         
         for (var i=0,len=sText.length;i<len;i++){
             var chara = sText[i];
@@ -79,7 +82,7 @@ module.exports = {
             
             if (ind == -1) ind = 0;
             
-            this.drawSprite(oCtx, oFont, xx, y, ind, 0);
+            this.drawSprite(oCtx, spr, xx, y, ind, 0);
             xx += oFont.charasWidth[ind] + 1;
         }
     }

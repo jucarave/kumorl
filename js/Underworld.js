@@ -190,7 +190,7 @@ PlayerStats.prototype.addItem = function(oItem){
             var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
-                this.game.console.addMessage(name + " picked!");
+                this.game.console.addMessage(name + " picked!", 'yellow');
                 return true;
             }else{
                 continue;
@@ -198,7 +198,7 @@ PlayerStats.prototype.addItem = function(oItem){
         }
         
         this.items[i] = oItem;
-        this.game.console.addMessage(oItem.ref.name + " picked!");
+        this.game.console.addMessage(oItem.ref.name + " picked!", 'yellow');
         
         return true;
     }
@@ -233,7 +233,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     var effect = item.ref.onUse;
     
     if (item.ref.stack && item.amount){
-        this.game.console.addMessage(item.ref.name + ' used');
+        this.game.console.addMessage(item.ref.name + ' used', 'yellow');
         if (--item.amount == 0){ 
             ItemFactory.free(item);
             this.items[iSlot] = null; 
@@ -543,8 +543,8 @@ function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
 
 module.exports = Console;
 
-Console.prototype.addMessage = function(sText){
-    this.messages.push(sText);
+Console.prototype.addMessage = function(sText, sColor){
+    this.messages.push({text: sText, color: sColor});
     
     if (this.messages.length > this.maxMessages){
         this.messages.splice(0, 1);
@@ -554,7 +554,7 @@ Console.prototype.addMessage = function(sText){
 };
 
 Console.prototype.addToLast = function(sText){
-    this.messages[this.messages.length - 1] += sText;
+    this.messages[this.messages.length - 1].text += sText;
     this.preRender();
 };
 
@@ -565,7 +565,7 @@ Console.prototype.preRender = function(){
     for (var i=0,len=this.messages.length;i<len;i++){
         var m = this.messages[i];
         
-        Canvas.drawSpriteText(this.ctx, m, this.font, 0, i * this.font.height);
+        Canvas.drawSpriteText(this.ctx, m.text, this.font, 0, i * this.font.height, m.color);
     }
 };
 
@@ -631,7 +631,7 @@ Enemy.prototype.receiveDamage = function(iDmg){
     }
     
     this.game.console.addToLast(', ' + dmg + ' damage points received');
-    this.mapManager.createFloatText(dmg + '', this.position.x, this.position.y);
+    this.mapManager.createFloatText(dmg + '', this.position.x, this.position.y, 'red');
     this.enemyStats.hp -= dmg;
     this.blink = 12;
     this.state = ActorState.DAMAGE;
@@ -773,6 +773,7 @@ function FloatText(){
     this.lifetime = 0;
     this.floatUp = false;
     this.font = null;
+    this.color = null;
     
     this.destroyed = false;
     this._floattext = true;
@@ -789,11 +790,11 @@ FloatText.preAllocate = function(iAmount){
     }
 };
 
-FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+FloatText.allocate = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor){
     if (FloatText.memLoc.length == 0) throw "Out of FloatText instances.";
     
     var text = FloatText.memLoc.pop();
-    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp);
+    text.init(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor);
     
     return text;
 };
@@ -802,13 +803,14 @@ FloatText.free = function(oFloatText){
     FloatText.memLoc.push(oFloatText);
 };
 
-FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp){
+FloatText.prototype.init = function(oMapManager, x, y, sText, oFont, iLifetime, bFloatUp, sColor){
     this.mapManager = oMapManager;
     this.position.set(x, y);
     this.text = sText;
     this.lifetime = iLifetime;
     this.floatUp = bFloatUp;
     this.font = oFont;
+    this.color = sColor;
     
     this.fixPosition();
     
@@ -829,7 +831,7 @@ FloatText.prototype.draw = function(oCtx, oView){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > oView.width || vy > oView.height) return;
     
-    KT.Canvas.drawSpriteText(oCtx, this.text, this.font, vx * 32, vy * 32);
+    KT.Canvas.drawSpriteText(oCtx, this.text, this.font, vx * 32, vy * 32, this.color);
 };
 
 FloatText.prototype.update = function(){
@@ -1149,8 +1151,8 @@ MapManager.prototype.destroyInstance = function(instance){
     else{ console.log(instance); throw "Da phuq"; } 
 };
 
-MapManager.prototype.createFloatText = function(sText, x, y){
-    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true);
+MapManager.prototype.createFloatText = function(sText, x, y, oColor){
+    var fText = FloatText.allocate(this, x, y, sText, this.game.sprites.f_font, 30, true, oColor);
     this.instancesFront.push(fText);
 };
 
@@ -1514,7 +1516,7 @@ Player.prototype.attackTo = function(oEnemy){
         return;
     }
     
-    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name);
+    this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name, 'red');
     
     var dmg = this.game.rollDice(this.partyMember.atk);
     this.mapManager.createAttack(oEnemy, dmg, 'slice');
@@ -1538,7 +1540,7 @@ Player.prototype.pickItem = function(oItem){
         var msg = "You see a";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        this.game.console.addMessage(msg + ' ' + name);
+        this.game.console.addMessage(msg + ' ' + name, 'aqua');
         return;
     }
     
@@ -1826,7 +1828,13 @@ Underworld.prototype.loadImages = function(){
     var centerOr = KT.Vector2.allocate(16, 16);
     var Sprite = KT.Sprite;
     
-    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+    var colors = [
+        ['red',180,50,50],
+        ['yellow',255,255,0],
+        ['aqua',55,180,220],
+    ];
+    
+    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', colors);
     
     this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
@@ -2055,10 +2063,13 @@ module.exports = {
         oCtx.restore();
     },
     
-    drawSpriteText: function(oCtx, sText, oFont, x, y){
+    drawSpriteText: function(oCtx, sText, oFont, x, y, sColor){
         if (!oFont.ready) return;
         
         var xx = x;
+        
+        var spr = oFont;
+        if (sColor) spr = spr.colors[sColor];
         
         for (var i=0,len=sText.length;i<len;i++){
             var chara = sText[i];
@@ -2066,7 +2077,7 @@ module.exports = {
             
             if (ind == -1) ind = 0;
             
-            this.drawSprite(oCtx, oFont, xx, y, ind, 0);
+            this.drawSprite(oCtx, spr, xx, y, ind, 0);
             xx += oFont.charasWidth[ind] + 1;
         }
     }
@@ -2256,7 +2267,7 @@ module.exports = {
         return img;
     },
     
-    parseFont: function(oImg){
+    parseFont: function(oImg, oColors){
         var canvas = document.createElement("canvas");
         canvas.width = oImg.width;
         canvas.height = oImg.height;
@@ -2265,16 +2276,18 @@ module.exports = {
         
         ctx.drawImage(oImg, 0, 0);
         
-        var imgData = ctx.getImageData(0, 0, oImg.width, oImg.height);
+        var imgData = ctx.getImageData(0, 0, oImg.width, 1);
         var data = imgData.data;
         
         oImg.charasWidth = [];
         
         var width = 0;
-        for (var i=0,len=oImg.width*4;i<len;i+=4){
-            var r = data[i];
-            var g = data[i + 1];
-            var b = data[i + 2];
+        var baseColor, r, g, b;
+        var i, len;
+        for (i=0,len=oImg.width*4;i<len;i+=4){
+            r = data[i];
+            g = data[i + 1];
+            b = data[i + 2];
             
             if (r == 255 && g == 0 && b == 255){
                 width += 1;
@@ -2283,11 +2296,43 @@ module.exports = {
                 width = 0;
             }
         }
+        
+        oImg.colors = {};
+        for (var j=0,jlen=oColors.length;j<jlen;j++){
+            baseColor = ctx.getImageData(0, 0, oImg.width, oImg.height);
+            for (i=0,len=baseColor.data.length;i<len;i+=4){
+                r = baseColor.data[i];
+                g = baseColor.data[i + 1];
+                b = baseColor.data[i + 2];
+                
+                if (r == 255 && g == 255 && b == 255){
+                    baseColor.data[i] = oColors[j][1];
+                    baseColor.data[i + 1] = oColors[j][2];
+                    baseColor.data[i + 2] = oColors[j][3];
+                }
+            }
+            
+            var texture = document.createElement("canvas");
+            texture.width = oImg.width;
+            texture.height = oImg.height;
+            texture.sprWidth = oImg.sprWidth;
+            texture.sprHeight = oImg.sprHeight;
+            texture.ready = true;
+            texture.origin = oImg.origin;
+            texture.offsetY = oImg.offsetY;
+            texture.hNum = oImg.hNum; 
+            texture.vNum = oImg.vNum;
+            
+            var tCtx = texture.getContext("2d");
+            tCtx.putImageData(baseColor, 0, 0);
+            
+            oImg.colors[oColors[j][0]] = texture;
+        }
     },
     
-    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList){
+    loadFontSprite: function(sFilename, iSprWidth, iSprHeight, sCharactersList, oColors){
         var thus = this;
-        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg); }});
+        var sprite = this.loadSprite(sFilename, iSprWidth, iSprHeight, {callback: function(oImg){ thus.parseFont(oImg, oColors); }});
         sprite.charactersList = sCharactersList;
         sprite.offsetY = 1;
         
