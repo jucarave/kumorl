@@ -29,15 +29,20 @@ Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
     if (Player.memLoc.length == 0) throw "Out of Player instances.";
     
     var player = Player.memLoc.pop();
-    player.init(oMapManager, oSprite, x, y);
-    player.partyMember = oPartyMember;
-    player.partyMember.position = player.position;
+    player.init(oMapManager, oSprite, x, y, oPartyMember);
     
     return player;
 };
 
 Player.free = function(oPlayer){
     Player.memLoc.push(oPlayer);
+};
+
+Player.prototype.init = function(oMapManager, oSprite, x, y, oPartyMember){
+    Actor.prototype.init.call(this, oMapManager, oSprite, x, y);
+    
+    this.partyMember = oPartyMember;
+    this.partyMember.position = this.position;
 };
 
 Player.prototype.endTurn = function(){

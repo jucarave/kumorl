@@ -23,12 +23,17 @@ function PlayerStats(oGame){
 module.exports = PlayerStats;
 
 PlayerStats.prototype.addItem = function(oItem){
+    var amount = '';
+    if (oItem.amount > 1){
+        amount = ' (x' + oItem.amount + ')';
+    }
+    
     for (var i=0;i<10;i++){
         if (this.items[i]){
             var name = oItem.ref.name;
             oItem = this.addItemToSlot(oItem, i);
             if (!oItem){
-                this.game.console.addMessage(name + " picked!", 'yellow');
+                this.game.console.addMessage(name + amount + " picked!", 'yellow');
                 return true;
             }else{
                 continue;
@@ -36,7 +41,7 @@ PlayerStats.prototype.addItem = function(oItem){
         }
         
         this.items[i] = oItem;
-        this.game.console.addMessage(oItem.ref.name + " picked!", 'yellow');
+        this.game.console.addMessage(oItem.ref.name + amount + " picked!", 'yellow');
         
         return true;
     }
@@ -71,7 +76,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     var effect = item.ref.onUse;
     
     if (item.ref.stack && item.amount){
-        this.game.console.addMessage(item.ref.name + ' used', 'yellow');
+        this.game.console.addMessage(this.name + ' used ' + item.ref.name, 'yellow');
         if (--item.amount == 0){ 
             ItemFactory.free(item);
             this.items[iSlot] = null; 
@@ -81,7 +86,7 @@ PlayerStats.prototype.useItem = function(iSlot){
     }
     
     if (effect){
-        ItemFactory.activateEffect(this.game.map, effect, this);
+        ItemFactory.activateEffect(this.game, effect, this);
         return true;
     }
     

@@ -61,8 +61,9 @@ Animation.prototype.draw = function(oCtx, view){
     if (vx + 1 < 0 || vy + 1 < 0) return;
     if (vx > view.width || vy > view.height) return;
     
-    var imx = this.animationInd[(this.imageIndex << 0) * 2];
-    var imy = this.animationInd[(this.imageIndex << 0) * 2 + 1];
+    var imgInd = (this.imageIndex << 0) * 2;
+    var imx = this.animationInd[imgInd];
+    var imy = this.animationInd[imgInd + 1];
     
     KT.Canvas.drawSprite(oCtx, this.sprite, vx * 32, (vy * 32), imx, imy);
 };

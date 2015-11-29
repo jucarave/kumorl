@@ -1,10 +1,5 @@
-var ActorEffect = require('./e_ActorEffects');
-
-function Effect(iType, sName, sValue){
-    this.type = iType;
-    this.name = sName;
-    this.value = sValue;
-}
+var Magic = require('./d_Magic');
+var VM = require('./g_VM');
 
 function Position(x, y){
     this.x = x;
@@ -17,7 +12,7 @@ module.exports = {
     items: {
         sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), type: 'weapon' },
         
-        potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: new Effect(1, 'heal', 30) },
+        potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: Magic.heal },
         
         torch: { name: 'Torch', code: 'torch', imageIndex: new Position(3, 0), imageNum: 3, type: 'misc', solid: true }
     },
@@ -80,9 +75,6 @@ module.exports = {
     },
     
     activateEffect: function(oGame, oEffect, oTarget){
-        
-        switch (oEffect.type){
-            case 1: ActorEffect.execute(oGame, oEffect, oTarget); break;
-        }
+        VM.execute(oGame, oEffect, oTarget);
     }
 };

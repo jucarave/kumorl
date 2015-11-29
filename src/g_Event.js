@@ -71,10 +71,28 @@ Event.prototype.update = function(oCtx, oView){
             }
             break;
             
-        case EventType.HEAL_ACTOR:
+        case EventType.ADD_HEALTH:
             this.target.hp = Math.min(this.target.mHp, this.target.hp + this.params[0]);
             this.mapManager.game.console.addToLast(', recovered ' + this.params[0] + ' hp');
             this.destroyed = true;
             break;
+            
+        case EventType.ADD_POSITION:
+            this.target.position.sum(this.params[0], this.params[1]);
+            this.destroyed = true;
+            break;
+            
+        case EventType.SET_HEALTH:
+            this.target.hp = this.params[0];
+            this.destroyed = true;
+            break;
+            
+        case EventType.SET_POSITION:
+            this.target.position.set(this.params[0], this.params[1]);
+            this.destroyed = true;
+            break;
+            
+        default:
+            throw this.type +  " event not implemented!";
     }
 };

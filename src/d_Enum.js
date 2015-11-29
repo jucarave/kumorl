@@ -16,6 +16,9 @@ module.exports = {
         PLAY_ANIMATION: 0,
         CAST_DAMAGE: 1,
         WAIT_ACTOR: 2,
-        HEAL_ACTOR: 3
+        ADD_HEALTH: 3,
+        ADD_POSITION: 4,
+        SET_HEALTH: 5,
+        SET_POSITION: 6
     }
 };
