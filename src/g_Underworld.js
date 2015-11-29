@@ -45,7 +45,7 @@ Underworld.prototype.loadImages = function(){
         ['aqua',55,180,220],
     ];
     
-    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', colors);
+    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', colors);
     
     this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     

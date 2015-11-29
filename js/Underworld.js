@@ -1755,7 +1755,19 @@ module.exports = {
     },
     
     destroyItem: function(oGame, oPlayer){
-        oGame.console.addMessage(this.drag.item.ref.name + ' destroyed', 'yellow');
+        var name = this.drag.item.ref.name;
+        if (!this.drag.fullDrag){
+            oGame.console.addMessage(name + ' destroyed', 'yellow');
+            this.drag.item.amount -= 1;
+            this.drag.item = null;
+            return;
+        }
+        
+        if (this.drag.item.amount > 1){
+            name += ' (x' + this.drag.item.amount +')';
+        }
+        
+        oGame.console.addMessage(name + ' destroyed', 'yellow');
         
         ItemFactory.free(this.drag.item);
         oPlayer.items[this.drag.slot] = null;
@@ -1843,7 +1855,7 @@ Underworld.prototype.loadImages = function(){
         ['aqua',55,180,220],
     ];
     
-    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', colors);
+    this.sprites.f_font = Sprite.loadFontSprite('img/fonts/sprFont.png', 10, 11, ' !,./0123456789:;?()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', colors);
     
     this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
