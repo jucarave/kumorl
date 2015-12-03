@@ -156,7 +156,7 @@ module.exports = {
 };
 },{"./d_Magic":5,"./g_VM":19}],5:[function(require,module,exports){
 module.exports = {
-    heal: [0x00, 0, 0x00, 0, 0x02, 0x08, 0x00, 0, 0x00, 30, 0x05]
+    heal: new Uint8ClampedArray([0x00, 0, 0x00, 0, 0x02, 0x08, 0x00, 0, 0x00, 30, 0x05])
 };
 },{}],6:[function(require,module,exports){
 var ItemFactory = require('./d_ItemFactory');
@@ -167,16 +167,17 @@ function PlayerStats(oGame){
     this.name = 'Kram';
     this.level = 1;
     this.exp = 0;
+    this.next = 100;
     this.hp = 8;
     this.mHp = 10;
-    this.mp = 3;
+    this.mp = 5;
     this.mMp = 5;
     
     this.atk = '2D3';
     this.dfs = '2D3';
     this.spd = '2D3';
     this.luk = '2D3';
-    this.int = '2D3';
+    this.wis = '2D3';
     
     this.items = new Array(10);
 }
@@ -1357,8 +1358,8 @@ MapManager.prototype.drawMap = function(){
     var xx = m.floor(this.view.x);
     var yy = m.floor(this.view.y);
     
-    var ww = xx + this.view.width;
-    var hh = yy + this.view.height;
+    var ww = xx + this.view.width + 1;
+    var hh = yy + this.view.height + 1;
     ww = m.max(0, m.min(64, ww));
     hh = m.max(0, m.min(64, hh));
     
@@ -1618,29 +1619,61 @@ module.exports = {
     lastMousePosition: null,
     lastSlot: -1,
     
+    _updatePlayerStats: true,
+    
     init: function(){
         this.drag.anchor = KT.Vector2.allocate(0, 0);
         this.lastMousePosition = KT.Vector2.allocate(-1, 0);
     },
     
+    updatePlayerStatsUI: function(oGame, oPlayer){
+        var Canvas = KT.Canvas;
+        var ctx = oGame.playerStatsSurface;
+        
+        Canvas.drawSpriteText(ctx, "Name: " + oPlayer.name, oGame.sprites.f_font, 0, 0);
+        
+        Canvas.drawSpriteText(ctx, "Level: " + oPlayer.level, oGame.sprites.f_font, 0, 20);
+        Canvas.drawSpriteText(ctx, "Exp: " + oPlayer.exp, oGame.sprites.f_font, 0, 30);
+        Canvas.drawSpriteText(ctx, "Next: " + oPlayer.next, oGame.sprites.f_font, 0, 40);
+        
+        Canvas.drawSpriteText(ctx, "Health: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 60);
+        Canvas.drawSpriteText(ctx, "Mana: " + oPlayer.mp + ' / ' + oPlayer.mMp, oGame.sprites.f_font, 0, 70);
+        Canvas.drawSpriteText(ctx, "Food: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 80);
+        
+        Canvas.drawSpriteText(ctx, "Strength: " + oPlayer.atk, oGame.sprites.f_font, 0, 100);
+        Canvas.drawSpriteText(ctx, "Defense: " + oPlayer.dfs, oGame.sprites.f_font, 0, 110);
+        Canvas.drawSpriteText(ctx, "Speed: " + oPlayer.spd, oGame.sprites.f_font, 0, 120);
+        Canvas.drawSpriteText(ctx, "Luck: " + oPlayer.luk, oGame.sprites.f_font, 0, 130);
+        Canvas.drawSpriteText(ctx, "Wisdom: " + oPlayer.wis, oGame.sprites.f_font, 0, 140);
+        
+        this._updatePlayerStats = false;
+    },
+    
     drawoPlayerStats: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
         
-        Canvas.drawSpriteText(oGame.ctx, oPlayer.name, oGame.sprites.f_font, 16, 440);
+        Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerMini, 8, 425, 0, 0);
+        
+        Canvas.drawSpriteText(oGame.ctx, oPlayer.name, oGame.sprites.f_font, 20, 437);
         
         var hp = oPlayer.hp / oPlayer.mHp;
         oGame.ctx.fillStyle = 'rgb(60,0,0)';
-        oGame.ctx.fillRect(16, 454, 100, 5);
+        oGame.ctx.fillRect(20, 451, 100, 5);
         oGame.ctx.fillStyle = 'rgb(122,0,0)';
-        oGame.ctx.fillRect(16, 454, 100 * hp, 5);
+        oGame.ctx.fillRect(20, 451, 100 * hp, 5);
         
         if (oPlayer.mMp > 0){
             var mp = oPlayer.mp / oPlayer.mMp;
             oGame.ctx.fillStyle = 'rgb(45,80,100)';
-            oGame.ctx.fillRect(16, 462, 80, 3);
+            oGame.ctx.fillRect(20, 460, 80, 3);
             oGame.ctx.fillStyle = 'rgb(90,155,200)';
-            oGame.ctx.fillRect(16, 462, 80 * mp, 3);
+            oGame.ctx.fillRect(20, 460, 80 * mp, 3);
         }
+        
+        if (this._updatePlayerStats) this.updatePlayerStatsUI(oGame, oPlayer);
+        
+        Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
+        oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
     },
     
     drawInventory: function(oGame, oPlayer){
@@ -1833,6 +1866,7 @@ function Underworld(elDiv){
     
     this.mapSurface = this.createSurface(width, height);
     this.autoMapSurface = this.createSurface(134, 134);
+    this.playerStatsSurface = this.createSurface(115, 150);
     
     KT.Input.listenTo(this.canvas);
     
@@ -1861,6 +1895,8 @@ Underworld.prototype.loadImages = function(){
     
     this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
+    this.sprites.ui_playerMini = Sprite.loadSprite('img/ui/sprPlayerPanel.png');
+    this.sprites.ui_playerStats = Sprite.loadSprite('img/ui/sprPlayerStats.png');
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
     

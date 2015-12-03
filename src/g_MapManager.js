@@ -406,8 +406,8 @@ MapManager.prototype.drawMap = function(){
     var xx = m.floor(this.view.x);
     var yy = m.floor(this.view.y);
     
-    var ww = xx + this.view.width;
-    var hh = yy + this.view.height;
+    var ww = xx + this.view.width + 1;
+    var hh = yy + this.view.height + 1;
     ww = m.max(0, m.min(64, ww));
     hh = m.max(0, m.min(64, hh));
     

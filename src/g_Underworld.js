@@ -21,6 +21,7 @@ function Underworld(elDiv){
     
     this.mapSurface = this.createSurface(width, height);
     this.autoMapSurface = this.createSurface(134, 134);
+    this.playerStatsSurface = this.createSurface(115, 150);
     
     KT.Input.listenTo(this.canvas);
     
@@ -49,6 +50,8 @@ Underworld.prototype.loadImages = function(){
     
     this.sprites.dungeon = Sprite.loadSprite('img/tileset/sprDungeon.png', 32, 32);
     
+    this.sprites.ui_playerMini = Sprite.loadSprite('img/ui/sprPlayerPanel.png');
+    this.sprites.ui_playerStats = Sprite.loadSprite('img/ui/sprPlayerStats.png');
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
     
