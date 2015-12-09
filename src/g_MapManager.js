@@ -165,6 +165,11 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
+MapManager.prototype.startUITurn = function(){
+    this.prevTurn = this.turn;
+    this.turn = MapTurn.UI_TURN;
+};
+
 MapManager.prototype.endTurn = function(){
     switch (this.turn){
         case MapTurn.PLAYER_TURN:
@@ -184,6 +189,11 @@ MapManager.prototype.endTurn = function(){
             if (this.eventStack.length == 0){
                 this.turn = this.prevTurn;
             }
+            break;
+            
+        case MapTurn.UI_TURN:
+            this.turn = MapTurn.WORLD_TURN;
+            this.prevTurn = 0;
             break;
     }
 };

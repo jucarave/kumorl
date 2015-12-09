@@ -70,6 +70,7 @@ module.exports = {
     
     drawSpriteText: function(oCtx, sText, oFont, x, y, sColor){
         if (!oFont.ready) return;
+        sText = sText.toString();
         
         var xx = x;
         

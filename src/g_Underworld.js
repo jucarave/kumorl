@@ -11,6 +11,7 @@ var UI = require('./g_UI');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var Event = require('./g_Event');
+var Observer = require('./g_Observer');
 
 function Underworld(elDiv){
     var width = 854;
@@ -21,9 +22,14 @@ function Underworld(elDiv){
     
     this.mapSurface = this.createSurface(width, height);
     this.autoMapSurface = this.createSurface(134, 134);
-    this.playerStatsSurface = this.createSurface(115, 150);
+    this.playerStatsSurface = this.createSurface(150, 150);
     
+    var thus = this;
     KT.Input.listenTo(this.canvas);
+    KT.Input.registerListener(function(oEvent, iKeyCode){ thus.updateInput(oEvent, iKeyCode); });
+    
+    this.inputObserver = new Observer();
+    this.inputObserver.setParams({eventType: -1, keyCode: -1});
     
     this.maps = [];
     this.map = null;
@@ -122,6 +128,15 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
+Underworld.prototype.updateInput = function(oEvent, iKeyCode){
+    var params = this.inputObserver.params;
+    
+    params.eventType = oEvent;
+    params.keyCode = iKeyCode;
+    
+    this.inputObserver.callListeners();
+};
+
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
@@ -137,6 +152,7 @@ KT.Utils.addEvent(window, 'load', function(){
     preloadMemory();
     
     var game = new Underworld(KT.Utils.get("divGame"));
+    UI.init(game);
     
     var wait = function(){
         if (game.checkReadyData()){
@@ -160,8 +176,6 @@ function preloadMemory(){
     FloatText.preAllocate(3);
     Animation.preAllocate(1);
     Event.preAllocate(5);
-    
-    UI.init();
 }
 
 var requestAnimFrame = (function(){

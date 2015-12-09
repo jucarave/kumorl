@@ -29,6 +29,12 @@ module.exports = {
 		DOWN: 40
     },
     
+    _listener: null,
+    EV_MOUSE_DOWN: 0,
+    EV_MOUSE_UP: 1,
+    EV_KEY_DOWN: 2,
+    EV_KEY_UP: 3,
+    
     listenTo: function(elCanvas){
         var thus = this;
         
@@ -53,19 +59,24 @@ module.exports = {
 		}
     },
     
+    registerListener: function(oCallback){
+        this._listener = oCallback;
+    },
+    
     onMouseDown: function(oEvent, elCanvas){
         if (this.mouse.status == 2) return;
         
         this.mouse.status = 1;
         this.onMouseMove(oEvent, elCanvas);
+        
+        if (this._listener) this._listener(this.EV_MOUSE_DOWN);
     },
     
     onMouseUp: function(oEvent, elCanvas){
-        this.mouse.status = 3;
+        this.mouse.status = 0;
         this.onMouseMove(oEvent, elCanvas);
         
-        var thus = this;
-        setTimeout(function(){ thus.mouse.status = 0; }, 40);
+        if (this._listener) this._listener(this.EV_MOUSE_UP);
     },
     
     onMouseMove: function(oEvent, elCanvas){
@@ -83,14 +94,15 @@ module.exports = {
         if (this.keys[oEvent.keyCode] == 2) return;
         
         this.keys[oEvent.keyCode] = 1;
+        
+        if (this._listener) this._listener(this.EV_KEY_DOWN, oEvent.keyCode);
     },
     
     onKeyUp: function(oEvent){
     	var keyCode = oEvent.keyCode;
-        this.keys[keyCode] = 3;
+        this.keys[keyCode] = 0;
         
-        var thus = this;
-        setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+        if (this._listener) this._listener(this.EV_KEY_UP, oEvent.keyCode);
     },
     
     isMouseDown: function(){

@@ -7,16 +7,27 @@ function PlayerStats(oGame){
     this.level = 1;
     this.exp = 0;
     this.next = 100;
-    this.hp = 8;
-    this.mHp = 10;
-    this.mp = 5;
-    this.mMp = 5;
+    this.hp = 100;
+    this.mHp = 100;
+    this.mp = 300;
+    this.mMp = 500;
+    this.stm = 100;
+    this.mStm = 100;
     
-    this.atk = '2D3';
-    this.dfs = '2D3';
-    this.spd = '2D3';
-    this.luk = '2D3';
-    this.wis = '2D3';
+    this.atk = 4;
+    this.dfs = 3;
+    this.spd = 3;
+    this.luk = 2;
+    this.wis = 2;
+    
+    this.arch = 2;
+    this.oneH = 2;
+    this.twoH = 2;
+    this.hvyA = 2;
+    this.lgtA = 2;
+    this.alch = 2;
+    this.fdPv = 2;
+    this.crft = 2;
     
     this.items = new Array(10);
 }

@@ -1,43 +1,128 @@
 var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
+var Enum = require('./d_Enum');
+var MapTurn = Enum.MAP;
 
 module.exports = {
+    game: null,
     drag: {
         item: null,
         anchor: null,
         slot: 0,
         fullDrag: false
     },
-    lastClick: 0,
-    lastMousePosition: null,
+    mouse: {
+        stat: 0,
+        position: null,
+        lastPosition: null,
+        lastClick: 0
+    },
+    keys: {
+        shift: 0
+    },
     lastSlot: -1,
+    
+    uiLabels: ["Name",null,"Level","Exp","Next",null,"Health","Mana","Stamina",null,"Alchemy","Archery","Cookery","Crafting","Defense","Heavy Armor","Light Armor","Luck","One Handed","Speed","Strength","Two Handed","Wisdom"],
+    uiStats: ["name",null,"level","exp","next",null,["hp","mHp"],["mp","mMp"],["stm","mStm"],null,"alch","arch","fdPv","crft","dfs","hvyA","lgtA","luk","oneH","spd","atk","twoH","wis"],
+    uiStatsScroll: 10,
+    
+    uiPanels: [
+        {x: 237, y: 432, w: 617, h: 470}
+    ],
     
     _updatePlayerStats: true,
     
-    init: function(){
+    init: function(oGame){
         this.drag.anchor = KT.Vector2.allocate(0, 0);
-        this.lastMousePosition = KT.Vector2.allocate(-1, 0);
+        this.mouse.position = KT.Vector2.allocate(-1, 0);
+        this.mouse.lastPosition = KT.Vector2.allocate(-1, 0);
+        this.game = oGame;
+        
+        var thus = this;
+        oGame.inputObserver.register(function(oParams){ thus.handleInput(oParams); });
+    },
+    
+    handleInput: function(oParams){
+        var Input = KT.Input;
+        var map = this.game.map;
+        
+        switch (oParams.eventType){
+            case Input.EV_MOUSE_DOWN:
+                var onPanel = this.onUIPanel(Input.mouse.position);
+                if (onPanel){
+                    if (map.turn == MapTurn.PLAYER_TURN){
+                        map.startUITurn();
+                        
+                        this.mouse.position.set(Input.mouse.position.x, Input.mouse.position.y);
+                        this.mouse.stat = 1;
+                        
+                        return true;
+                    }
+                }
+                break;
+            
+            case Input.EV_MOUSE_UP:
+                if (map.turn == MapTurn.UI_TURN){
+                    map.endTurn();
+                    
+                    this.mouse.stat = 3;
+                    
+                    return true;
+                }
+                break;
+                
+            case Input.EV_KEY_DOWN:
+                if (oParams.keyCode == Input.vKeys.SHIFT){
+                    this.keys.shift = 1;
+                }
+                break;
+            
+            case Input.EV_KEY_UP:
+                if (oParams.keyCode == Input.vKeys.SHIFT){
+                    this.keys.shift = 0;
+                }
+                break;
+        }
+        
+        return false;
+    },
+    
+    onUIPanel: function(oPosition){
+        for (var i=0,len=this.uiPanels.length;i<len;i++){
+            var panel = this.uiPanels[i];
+            
+            if (oPosition.x >= panel.x && oPosition.y >= panel.y && oPosition.x < panel.w && oPosition.y < panel.h){
+                return true;
+            }
+        }
+        
+        return false;
     },
     
     updatePlayerStatsUI: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
         var ctx = oGame.playerStatsSurface;
         
-        Canvas.drawSpriteText(ctx, "Name: " + oPlayer.name, oGame.sprites.f_font, 0, 0);
+        Canvas.clearCanvas(ctx);
         
-        Canvas.drawSpriteText(ctx, "Level: " + oPlayer.level, oGame.sprites.f_font, 0, 20);
-        Canvas.drawSpriteText(ctx, "Exp: " + oPlayer.exp, oGame.sprites.f_font, 0, 30);
-        Canvas.drawSpriteText(ctx, "Next: " + oPlayer.next, oGame.sprites.f_font, 0, 40);
+        var labels = this.uiLabels;
+        var yy = -10;
         
-        Canvas.drawSpriteText(ctx, "Health: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 60);
-        Canvas.drawSpriteText(ctx, "Mana: " + oPlayer.mp + ' / ' + oPlayer.mMp, oGame.sprites.f_font, 0, 70);
-        Canvas.drawSpriteText(ctx, "Food: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 80);
-        
-        Canvas.drawSpriteText(ctx, "Strength: " + oPlayer.atk, oGame.sprites.f_font, 0, 100);
-        Canvas.drawSpriteText(ctx, "Defense: " + oPlayer.dfs, oGame.sprites.f_font, 0, 110);
-        Canvas.drawSpriteText(ctx, "Speed: " + oPlayer.spd, oGame.sprites.f_font, 0, 120);
-        Canvas.drawSpriteText(ctx, "Luck: " + oPlayer.luk, oGame.sprites.f_font, 0, 130);
-        Canvas.drawSpriteText(ctx, "Wisdom: " + oPlayer.wis, oGame.sprites.f_font, 0, 140);
+        var len = Math.min(labels.length, this.uiStatsScroll + 15);
+        for (var i=this.uiStatsScroll;i<len;i++){
+            yy += 10;
+            if (!labels[i]){ continue }
+            
+            Canvas.drawSpriteText(ctx, labels[i] + ":", oGame.sprites.f_font, 0, yy, 'aqua');
+            
+            var uiS = this.uiStats[i];
+            var stat = oPlayer[uiS];
+            if (uiS.push){
+                stat = oPlayer[uiS[0]] + ' / ' + oPlayer[uiS[1]];
+            }
+            
+            Canvas.drawSpriteText(ctx, stat, oGame.sprites.f_font, 90, yy);
+        }
         
         this._updatePlayerStats = false;
     },
@@ -117,26 +202,26 @@ module.exports = {
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
-        if (this.lastClick > 0){
+        if (this.mouse.lastClick > 0){
             oPlayer.useItem(slot);
-            KT.Input.mouse.status = 2;
-            this.lastClick = 0;
+            this.mouse.stat = 2;
+            this.mouse.lastClick = 0;
             this.lastSlot = -1;
-            this.lastMousePosition.set(-1, 0);
+            this.mouse.lastPosition.set(-1, 0);
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition.x == -1 && KT.Input.mouse.status == 1){
+        if (this.mouse.lastPosition.x == -1 && this.mouse.stat == 1){
             oGame.console.addMessage(msg + ' ' + name);
-            KT.Input.mouse.status = 2;
+            this.mouse.stat = 2;
         }
         
-        if (this.lastMousePosition.x != -1 && !this.lastMousePosition.equalsVector2(pos)){
+        if (this.mouse.lastPosition.x != -1 && !this.mouse.lastPosition.equalsVector2(pos)){
             var fullDrag = true;
-            if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
+            if (item.ref.stack && item.amount > 1 && !this.keys.shift == 1){
                 var oldItem = item;
                 item = ItemFactory.allocate(oldItem.ref, 1, oldItem.status);
                 
@@ -151,11 +236,11 @@ module.exports = {
             this.drag.slot = slot;
             this.drag.fullDrag = fullDrag;
             
-            this.lastMousePosition.set(-1, 0);
+            this.mouse.lastPosition.set(-1, 0);
+            this.mouse.lastClick = 0;
             this.lastSlot = -1;
-            this.lastClick = 0;
         }else{
-            this.lastMousePosition.set(pos.x, pos.y);
+            this.mouse.lastPosition.set(pos.x, pos.y);
             if (this.lastSlot == -1) this.lastSlot = slot;
         }
     },
@@ -203,23 +288,23 @@ module.exports = {
     },
     
     checkAction: function(oGame){
-        if (this.lastClick > 0) this.lastClick -= 1;
+        if (this.mouse.lastClick > 0) this.mouse.lastClick -= 1;
         
-        var Input = KT.Input;
         var player = oGame.party[0];
-        var pos = Input.mouse.position;
+        var pos = KT.Input.mouse.position;
         
-        var onInventory = (pos.x >= 237 && pos.y >= 432 && pos.x < 617 && pos.y < 470);
+        var invPanel = this.uiPanels[0];
+        var onInventory = (pos.x >= invPanel.x && pos.y >= invPanel.y && pos.x < invPanel.w && pos.y < invPanel.h);
         
-        if (Input.mouse.status && onInventory){
+        if ((this.mouse.stat == 1 || this.mouse.stat == 2) && onInventory){
             this.pickFromInventory(oGame, player);
         }
         
-        if (Input.isMouseUp()){
-            if (this.lastMousePosition.x != -1){
-                this.lastMousePosition.set(-1, 0);
+        if (this.mouse.stat == 3){
+            if (this.mouse.lastPosition.x != -1){
+                this.mouse.lastPosition.set(-1, 0);
+                this.mouse.lastClick = 10;
                 this.lastSlot = -1;
-                this.lastClick = 10;
             }
             
             if (this.drag.item != null){

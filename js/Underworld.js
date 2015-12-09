@@ -60,7 +60,8 @@ module.exports = {
     MAP: {
         PLAYER_TURN: 0,
         WORLD_TURN: 1,
-        EVENT_TURN: 2
+        EVENT_TURN: 2,
+        UI_TURN: 3
     },
     
     EVENT: {
@@ -154,7 +155,7 @@ module.exports = {
         VM.execute(oGame, oEffect, oTarget);
     }
 };
-},{"./d_Magic":5,"./g_VM":19}],5:[function(require,module,exports){
+},{"./d_Magic":5,"./g_VM":20}],5:[function(require,module,exports){
 module.exports = {
     heal: new Uint8ClampedArray([0x00, 0, 0x00, 0, 0x02, 0x08, 0x00, 0, 0x00, 30, 0x05])
 };
@@ -168,16 +169,27 @@ function PlayerStats(oGame){
     this.level = 1;
     this.exp = 0;
     this.next = 100;
-    this.hp = 8;
-    this.mHp = 10;
-    this.mp = 5;
-    this.mMp = 5;
+    this.hp = 100;
+    this.mHp = 100;
+    this.mp = 300;
+    this.mMp = 500;
+    this.stm = 100;
+    this.mStm = 100;
     
-    this.atk = '2D3';
-    this.dfs = '2D3';
-    this.spd = '2D3';
-    this.luk = '2D3';
-    this.wis = '2D3';
+    this.atk = 4;
+    this.dfs = 3;
+    this.spd = 3;
+    this.luk = 2;
+    this.wis = 2;
+    
+    this.arch = 2;
+    this.oneH = 2;
+    this.twoH = 2;
+    this.hvyA = 2;
+    this.lgtA = 2;
+    this.alch = 2;
+    this.fdPv = 2;
+    this.crft = 2;
     
     this.items = new Array(10);
 }
@@ -424,7 +436,7 @@ Actor.prototype.update = function(){
             break;
     }
 };
-},{"./d_Enum":3,"./kt_Kramtech":23}],9:[function(require,module,exports){
+},{"./d_Enum":3,"./kt_Kramtech":24}],9:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(){
@@ -503,7 +515,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":23}],10:[function(require,module,exports){
+},{"./kt_Kramtech":24}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -552,7 +564,7 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":23}],11:[function(require,module,exports){
+},{"./kt_Kramtech":24}],11:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var EnemyFactory = require('./d_EnemyFactory');
 var KT = require('./kt_Kramtech');
@@ -662,7 +674,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_EnemyFactory":2,"./d_Enum":3,"./g_Actor":8,"./kt_Kramtech":23}],12:[function(require,module,exports){
+},{"./d_EnemyFactory":2,"./d_Enum":3,"./g_Actor":8,"./kt_Kramtech":24}],12:[function(require,module,exports){
 var Enum = require('./d_Enum');
 var EventType = Enum.EVENT;
 var ActorState = Enum.ACTOR;
@@ -844,7 +856,7 @@ FloatText.prototype.update = function(){
 };
 
 
-},{"./kt_Kramtech":23}],14:[function(require,module,exports){
+},{"./kt_Kramtech":24}],14:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapTurn = require('./d_Enum').MAP;
 
@@ -949,7 +961,7 @@ Item.prototype.update = function(){
         this.mapManager.endTurn();
     }
 };
-},{"./d_Enum":3,"./kt_Kramtech":23}],15:[function(require,module,exports){
+},{"./d_Enum":3,"./kt_Kramtech":24}],15:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
@@ -1117,6 +1129,11 @@ MapManager.prototype.getInstanceAt = function(x, y){
     return null;
 };
 
+MapManager.prototype.startUITurn = function(){
+    this.prevTurn = this.turn;
+    this.turn = MapTurn.UI_TURN;
+};
+
 MapManager.prototype.endTurn = function(){
     switch (this.turn){
         case MapTurn.PLAYER_TURN:
@@ -1136,6 +1153,11 @@ MapManager.prototype.endTurn = function(){
             if (this.eventStack.length == 0){
                 this.turn = this.prevTurn;
             }
+            break;
+            
+        case MapTurn.UI_TURN:
+            this.turn = MapTurn.WORLD_TURN;
+            this.prevTurn = 0;
             break;
     }
 };
@@ -1436,7 +1458,31 @@ MapManager.prototype.update = function(){
     this.updateInstances(this.instancesFront);
     this.updateEvents();
 };
-},{"./d_Animation":1,"./d_EnemyFactory":2,"./d_Enum":3,"./d_ItemFactory":4,"./d_TileFactory":7,"./g_Animation":9,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_Player":16,"./kt_Kramtech":23}],16:[function(require,module,exports){
+},{"./d_Animation":1,"./d_EnemyFactory":2,"./d_Enum":3,"./d_ItemFactory":4,"./d_TileFactory":7,"./g_Animation":9,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_Player":17,"./kt_Kramtech":24}],16:[function(require,module,exports){
+function Observer(){
+    this.listeners = [];
+    this.params = null;
+}
+
+module.exports = Observer;
+
+Observer.prototype.setParams = function(oParams){
+    this.params = oParams;
+};
+
+Observer.prototype.register = function(oCallback){
+    this.listeners.push(oCallback);
+};
+
+Observer.prototype.callListeners = function(){
+    for (var i=0,len=this.listeners.length;i<len;i++){
+        var stop = this.listeners[i](this.params);
+        if (stop){
+            i = len;
+        }
+    }
+};
+},{}],17:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var KT = require('./kt_Kramtech');
 var ItemFactory = require('./d_ItemFactory');
@@ -1604,47 +1650,132 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_Enum":3,"./d_ItemFactory":4,"./g_Actor":8,"./kt_Kramtech":23}],17:[function(require,module,exports){
+},{"./d_Enum":3,"./d_ItemFactory":4,"./g_Actor":8,"./kt_Kramtech":24}],18:[function(require,module,exports){
 var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
+var Enum = require('./d_Enum');
+var MapTurn = Enum.MAP;
 
 module.exports = {
+    game: null,
     drag: {
         item: null,
         anchor: null,
         slot: 0,
         fullDrag: false
     },
-    lastClick: 0,
-    lastMousePosition: null,
+    mouse: {
+        stat: 0,
+        position: null,
+        lastPosition: null,
+        lastClick: 0
+    },
+    keys: {
+        shift: 0
+    },
     lastSlot: -1,
+    
+    uiLabels: ["Name",null,"Level","Exp","Next",null,"Health","Mana","Stamina",null,"Alchemy","Archery","Cookery","Crafting","Defense","Heavy Armor","Light Armor","Luck","One Handed","Speed","Strength","Two Handed","Wisdom"],
+    uiStats: ["name",null,"level","exp","next",null,["hp","mHp"],["mp","mMp"],["stm","mStm"],null,"alch","arch","fdPv","crft","dfs","hvyA","lgtA","luk","oneH","spd","atk","twoH","wis"],
+    uiStatsScroll: 10,
+    
+    uiPanels: [
+        {x: 237, y: 432, w: 617, h: 470}
+    ],
     
     _updatePlayerStats: true,
     
-    init: function(){
+    init: function(oGame){
         this.drag.anchor = KT.Vector2.allocate(0, 0);
-        this.lastMousePosition = KT.Vector2.allocate(-1, 0);
+        this.mouse.position = KT.Vector2.allocate(-1, 0);
+        this.mouse.lastPosition = KT.Vector2.allocate(-1, 0);
+        this.game = oGame;
+        
+        var thus = this;
+        oGame.inputObserver.register(function(oParams){ thus.handleInput(oParams); });
+    },
+    
+    handleInput: function(oParams){
+        var Input = KT.Input;
+        var map = this.game.map;
+        
+        switch (oParams.eventType){
+            case Input.EV_MOUSE_DOWN:
+                var onPanel = this.onUIPanel(Input.mouse.position);
+                if (onPanel){
+                    if (map.turn == MapTurn.PLAYER_TURN){
+                        map.startUITurn();
+                        
+                        this.mouse.position.set(Input.mouse.position.x, Input.mouse.position.y);
+                        this.mouse.stat = 1;
+                        
+                        return true;
+                    }
+                }
+                break;
+            
+            case Input.EV_MOUSE_UP:
+                if (map.turn == MapTurn.UI_TURN){
+                    map.endTurn();
+                    
+                    this.mouse.stat = 3;
+                    
+                    return true;
+                }
+                break;
+                
+            case Input.EV_KEY_DOWN:
+                if (oParams.keyCode == Input.vKeys.SHIFT){
+                    this.keys.shift = 1;
+                }
+                break;
+            
+            case Input.EV_KEY_UP:
+                if (oParams.keyCode == Input.vKeys.SHIFT){
+                    this.keys.shift = 0;
+                }
+                break;
+        }
+        
+        return false;
+    },
+    
+    onUIPanel: function(oPosition){
+        for (var i=0,len=this.uiPanels.length;i<len;i++){
+            var panel = this.uiPanels[i];
+            
+            if (oPosition.x >= panel.x && oPosition.y >= panel.y && oPosition.x < panel.w && oPosition.y < panel.h){
+                return true;
+            }
+        }
+        
+        return false;
     },
     
     updatePlayerStatsUI: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
         var ctx = oGame.playerStatsSurface;
         
-        Canvas.drawSpriteText(ctx, "Name: " + oPlayer.name, oGame.sprites.f_font, 0, 0);
+        Canvas.clearCanvas(ctx);
         
-        Canvas.drawSpriteText(ctx, "Level: " + oPlayer.level, oGame.sprites.f_font, 0, 20);
-        Canvas.drawSpriteText(ctx, "Exp: " + oPlayer.exp, oGame.sprites.f_font, 0, 30);
-        Canvas.drawSpriteText(ctx, "Next: " + oPlayer.next, oGame.sprites.f_font, 0, 40);
+        var labels = this.uiLabels;
+        var yy = -10;
         
-        Canvas.drawSpriteText(ctx, "Health: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 60);
-        Canvas.drawSpriteText(ctx, "Mana: " + oPlayer.mp + ' / ' + oPlayer.mMp, oGame.sprites.f_font, 0, 70);
-        Canvas.drawSpriteText(ctx, "Food: " + oPlayer.hp + ' / ' + oPlayer.mHp, oGame.sprites.f_font, 0, 80);
-        
-        Canvas.drawSpriteText(ctx, "Strength: " + oPlayer.atk, oGame.sprites.f_font, 0, 100);
-        Canvas.drawSpriteText(ctx, "Defense: " + oPlayer.dfs, oGame.sprites.f_font, 0, 110);
-        Canvas.drawSpriteText(ctx, "Speed: " + oPlayer.spd, oGame.sprites.f_font, 0, 120);
-        Canvas.drawSpriteText(ctx, "Luck: " + oPlayer.luk, oGame.sprites.f_font, 0, 130);
-        Canvas.drawSpriteText(ctx, "Wisdom: " + oPlayer.wis, oGame.sprites.f_font, 0, 140);
+        var len = Math.min(labels.length, this.uiStatsScroll + 15);
+        for (var i=this.uiStatsScroll;i<len;i++){
+            yy += 10;
+            if (!labels[i]){ continue }
+            
+            Canvas.drawSpriteText(ctx, labels[i] + ":", oGame.sprites.f_font, 0, yy, 'aqua');
+            
+            var uiS = this.uiStats[i];
+            var stat = oPlayer[uiS];
+            if (uiS.push){
+                stat = oPlayer[uiS[0]] + ' / ' + oPlayer[uiS[1]];
+            }
+            
+            Canvas.drawSpriteText(ctx, stat, oGame.sprites.f_font, 90, yy);
+        }
         
         this._updatePlayerStats = false;
     },
@@ -1724,26 +1855,26 @@ module.exports = {
             name = ItemFactory.getStatusName(item.status) + ' ' + name;
         }
         
-        if (this.lastClick > 0){
+        if (this.mouse.lastClick > 0){
             oPlayer.useItem(slot);
-            KT.Input.mouse.status = 2;
-            this.lastClick = 0;
+            this.mouse.stat = 2;
+            this.mouse.lastClick = 0;
             this.lastSlot = -1;
-            this.lastMousePosition.set(-1, 0);
+            this.mouse.lastPosition.set(-1, 0);
             return;
         }
         
         var msg = "A";
         if (name.startsOnVowel()){ msg += 'n'; }
         
-        if (this.lastMousePosition.x == -1 && KT.Input.mouse.status == 1){
+        if (this.mouse.lastPosition.x == -1 && this.mouse.stat == 1){
             oGame.console.addMessage(msg + ' ' + name);
-            KT.Input.mouse.status = 2;
+            this.mouse.stat = 2;
         }
         
-        if (this.lastMousePosition.x != -1 && !this.lastMousePosition.equalsVector2(pos)){
+        if (this.mouse.lastPosition.x != -1 && !this.mouse.lastPosition.equalsVector2(pos)){
             var fullDrag = true;
-            if (item.ref.stack && item.amount > 1 && !KT.Input.isKeyDown(KT.Input.vKeys.SHIFT)){
+            if (item.ref.stack && item.amount > 1 && !this.keys.shift == 1){
                 var oldItem = item;
                 item = ItemFactory.allocate(oldItem.ref, 1, oldItem.status);
                 
@@ -1758,11 +1889,11 @@ module.exports = {
             this.drag.slot = slot;
             this.drag.fullDrag = fullDrag;
             
-            this.lastMousePosition.set(-1, 0);
+            this.mouse.lastPosition.set(-1, 0);
+            this.mouse.lastClick = 0;
             this.lastSlot = -1;
-            this.lastClick = 0;
         }else{
-            this.lastMousePosition.set(pos.x, pos.y);
+            this.mouse.lastPosition.set(pos.x, pos.y);
             if (this.lastSlot == -1) this.lastSlot = slot;
         }
     },
@@ -1810,23 +1941,23 @@ module.exports = {
     },
     
     checkAction: function(oGame){
-        if (this.lastClick > 0) this.lastClick -= 1;
+        if (this.mouse.lastClick > 0) this.mouse.lastClick -= 1;
         
-        var Input = KT.Input;
         var player = oGame.party[0];
-        var pos = Input.mouse.position;
+        var pos = KT.Input.mouse.position;
         
-        var onInventory = (pos.x >= 237 && pos.y >= 432 && pos.x < 617 && pos.y < 470);
+        var invPanel = this.uiPanels[0];
+        var onInventory = (pos.x >= invPanel.x && pos.y >= invPanel.y && pos.x < invPanel.w && pos.y < invPanel.h);
         
-        if (Input.mouse.status && onInventory){
+        if ((this.mouse.stat == 1 || this.mouse.stat == 2) && onInventory){
             this.pickFromInventory(oGame, player);
         }
         
-        if (Input.isMouseUp()){
-            if (this.lastMousePosition.x != -1){
-                this.lastMousePosition.set(-1, 0);
+        if (this.mouse.stat == 3){
+            if (this.mouse.lastPosition.x != -1){
+                this.mouse.lastPosition.set(-1, 0);
+                this.mouse.lastClick = 10;
                 this.lastSlot = -1;
-                this.lastClick = 10;
             }
             
             if (this.drag.item != null){
@@ -1842,7 +1973,7 @@ module.exports = {
         }
     }
 };
-},{"./d_ItemFactory":4,"./kt_Kramtech.js":23}],18:[function(require,module,exports){
+},{"./d_Enum":3,"./d_ItemFactory":4,"./kt_Kramtech.js":24}],19:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
@@ -1856,6 +1987,7 @@ var UI = require('./g_UI');
 var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var Event = require('./g_Event');
+var Observer = require('./g_Observer');
 
 function Underworld(elDiv){
     var width = 854;
@@ -1866,9 +1998,14 @@ function Underworld(elDiv){
     
     this.mapSurface = this.createSurface(width, height);
     this.autoMapSurface = this.createSurface(134, 134);
-    this.playerStatsSurface = this.createSurface(115, 150);
+    this.playerStatsSurface = this.createSurface(150, 150);
     
+    var thus = this;
     KT.Input.listenTo(this.canvas);
+    KT.Input.registerListener(function(oEvent, iKeyCode){ thus.updateInput(oEvent, iKeyCode); });
+    
+    this.inputObserver = new Observer();
+    this.inputObserver.setParams({eventType: -1, keyCode: -1});
     
     this.maps = [];
     this.map = null;
@@ -1967,6 +2104,15 @@ Underworld.prototype.loopGame = function(){
     requestAnimFrame(function(){ thus.loopGame(); });
 };
 
+Underworld.prototype.updateInput = function(oEvent, iKeyCode){
+    var params = this.inputObserver.params;
+    
+    params.eventType = oEvent;
+    params.keyCode = iKeyCode;
+    
+    this.inputObserver.callListeners();
+};
+
 Underworld.prototype.update = function(){
     if (!this.map || !this.map.ready) return;
     
@@ -1982,6 +2128,7 @@ KT.Utils.addEvent(window, 'load', function(){
     preloadMemory();
     
     var game = new Underworld(KT.Utils.get("divGame"));
+    UI.init(game);
     
     var wait = function(){
         if (game.checkReadyData()){
@@ -2005,8 +2152,6 @@ function preloadMemory(){
     FloatText.preAllocate(3);
     Animation.preAllocate(1);
     Event.preAllocate(5);
-    
-    UI.init();
 }
 
 var requestAnimFrame = (function(){
@@ -2025,7 +2170,7 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_EnemyFactory":2,"./d_ItemFactory":4,"./d_PlayerStats":6,"./g_Animation":9,"./g_Console":10,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_MapManager":15,"./g_Player":16,"./g_UI":17,"./kt_Kramtech":23}],19:[function(require,module,exports){
+},{"./d_EnemyFactory":2,"./d_ItemFactory":4,"./d_PlayerStats":6,"./g_Animation":9,"./g_Console":10,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_MapManager":15,"./g_Observer":16,"./g_Player":17,"./g_UI":18,"./kt_Kramtech":24}],20:[function(require,module,exports){
 var Animation = require('./g_Animation');
 var AnimationFactory = require('./d_Animation');
 var Event = require('./g_Event');
@@ -2130,7 +2275,7 @@ module.exports = {
         mapManager.setEvents(events);
     }
 };
-},{"./d_Animation":1,"./d_Enum":3,"./g_Animation":9,"./g_Event":12}],20:[function(require,module,exports){
+},{"./d_Animation":1,"./d_Enum":3,"./g_Animation":9,"./g_Event":12}],21:[function(require,module,exports){
 function BoxCollision(x, y, w, h){
     this.x = x;
     this.y = y;
@@ -2155,7 +2300,7 @@ BoxCollision.prototype.update = function(x, y){
     this.x = x;
     this.y = y;
 };
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -2228,6 +2373,7 @@ module.exports = {
     
     drawSpriteText: function(oCtx, sText, oFont, x, y, sColor){
         if (!oFont.ready) return;
+        sText = sText.toString();
         
         var xx = x;
         
@@ -2245,7 +2391,7 @@ module.exports = {
         }
     }
 };
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2277,6 +2423,12 @@ module.exports = {
 		DOWN: 40
     },
     
+    _listener: null,
+    EV_MOUSE_DOWN: 0,
+    EV_MOUSE_UP: 1,
+    EV_KEY_DOWN: 2,
+    EV_KEY_UP: 3,
+    
     listenTo: function(elCanvas){
         var thus = this;
         
@@ -2301,19 +2453,24 @@ module.exports = {
 		}
     },
     
+    registerListener: function(oCallback){
+        this._listener = oCallback;
+    },
+    
     onMouseDown: function(oEvent, elCanvas){
         if (this.mouse.status == 2) return;
         
         this.mouse.status = 1;
         this.onMouseMove(oEvent, elCanvas);
+        
+        if (this._listener) this._listener(this.EV_MOUSE_DOWN);
     },
     
     onMouseUp: function(oEvent, elCanvas){
-        this.mouse.status = 3;
+        this.mouse.status = 0;
         this.onMouseMove(oEvent, elCanvas);
         
-        var thus = this;
-        setTimeout(function(){ thus.mouse.status = 0; }, 40);
+        if (this._listener) this._listener(this.EV_MOUSE_UP);
     },
     
     onMouseMove: function(oEvent, elCanvas){
@@ -2331,14 +2488,15 @@ module.exports = {
         if (this.keys[oEvent.keyCode] == 2) return;
         
         this.keys[oEvent.keyCode] = 1;
+        
+        if (this._listener) this._listener(this.EV_KEY_DOWN, oEvent.keyCode);
     },
     
     onKeyUp: function(oEvent){
     	var keyCode = oEvent.keyCode;
-        this.keys[keyCode] = 3;
+        this.keys[keyCode] = 0;
         
-        var thus = this;
-        setTimeout(function(){ thus.keys[keyCode] = 0; }, 40);
+        if (this._listener) this._listener(this.EV_KEY_UP, oEvent.keyCode);
     },
     
     isMouseDown: function(){
@@ -2385,7 +2543,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":25,"./kt_Vector2":26}],23:[function(require,module,exports){
+},{"./kt_Utils":26,"./kt_Vector2":27}],24:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -2398,7 +2556,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_BoxCollision":20,"./kt_Canvas":21,"./kt_Input":22,"./kt_Sprite":24,"./kt_Utils":25,"./kt_Vector2":26}],24:[function(require,module,exports){
+},{"./kt_BoxCollision":21,"./kt_Canvas":22,"./kt_Input":23,"./kt_Sprite":25,"./kt_Utils":26,"./kt_Vector2":27}],25:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2516,7 +2674,7 @@ module.exports = {
         return width - 1;
     }
 };
-},{"./kt_Utils":25,"./kt_Vector2":26}],25:[function(require,module,exports){
+},{"./kt_Utils":26,"./kt_Vector2":27}],26:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -2575,7 +2733,7 @@ module.exports = {
 		return ang;
 	}
 };
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -2698,4 +2856,4 @@ Vector2.fromAngle = function(radian){
 	
 	return Vector2.allocate(x, y);
 };
-},{}]},{},[18]);
+},{}]},{},[19]);
