@@ -155,7 +155,7 @@ module.exports = {
         VM.execute(oGame, oEffect, oTarget);
     }
 };
-},{"./d_Magic":5,"./g_VM":20}],5:[function(require,module,exports){
+},{"./d_Magic":5,"./g_VM":21}],5:[function(require,module,exports){
 module.exports = {
     heal: new Uint8ClampedArray([0x00, 0, 0x00, 0, 0x02, 0x08, 0x00, 0, 0x00, 30, 0x05])
 };
@@ -436,7 +436,7 @@ Actor.prototype.update = function(){
             break;
     }
 };
-},{"./d_Enum":3,"./kt_Kramtech":24}],9:[function(require,module,exports){
+},{"./d_Enum":3,"./kt_Kramtech":25}],9:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Animation(){
@@ -515,7 +515,7 @@ Animation.prototype.update = function(){
         }
     }
 };
-},{"./kt_Kramtech":24}],10:[function(require,module,exports){
+},{"./kt_Kramtech":25}],10:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 
 function Console(oGame, oFont, iWidth, iHeight, iMaxMessages){
@@ -564,7 +564,7 @@ Console.prototype.preRender = function(){
 Console.prototype.render = function(oCtx, x, y){
     oCtx.drawImage(this.canvas, x, y);
 };
-},{"./kt_Kramtech":24}],11:[function(require,module,exports){
+},{"./kt_Kramtech":25}],11:[function(require,module,exports){
 var Actor = require('./g_Actor');
 var EnemyFactory = require('./d_EnemyFactory');
 var KT = require('./kt_Kramtech');
@@ -674,7 +674,7 @@ Enemy.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_EnemyFactory":2,"./d_Enum":3,"./g_Actor":8,"./kt_Kramtech":24}],12:[function(require,module,exports){
+},{"./d_EnemyFactory":2,"./d_Enum":3,"./g_Actor":8,"./kt_Kramtech":25}],12:[function(require,module,exports){
 var Enum = require('./d_Enum');
 var EventType = Enum.EVENT;
 var ActorState = Enum.ACTOR;
@@ -856,7 +856,7 @@ FloatText.prototype.update = function(){
 };
 
 
-},{"./kt_Kramtech":24}],14:[function(require,module,exports){
+},{"./kt_Kramtech":25}],14:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapTurn = require('./d_Enum').MAP;
 
@@ -961,7 +961,7 @@ Item.prototype.update = function(){
         this.mapManager.endTurn();
     }
 };
-},{"./d_Enum":3,"./kt_Kramtech":24}],15:[function(require,module,exports){
+},{"./d_Enum":3,"./kt_Kramtech":25}],15:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var Player = require('./g_Player');
 var Enemy = require('./g_Enemy');
@@ -1062,7 +1062,7 @@ MapManager.prototype.loadMap = function(sMapName){
             thus.instances.push(Item.allocate(thus, item.x, item.y, ItemFactory.getItem(item.item, item.amount, item.status), item.params));
         }
         
-        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0]);
+        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0], thus.game.playerInput);
         
         var e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 4, EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);
@@ -1458,7 +1458,7 @@ MapManager.prototype.update = function(){
     this.updateInstances(this.instancesFront);
     this.updateEvents();
 };
-},{"./d_Animation":1,"./d_EnemyFactory":2,"./d_Enum":3,"./d_ItemFactory":4,"./d_TileFactory":7,"./g_Animation":9,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_Player":17,"./kt_Kramtech":24}],16:[function(require,module,exports){
+},{"./d_Animation":1,"./d_EnemyFactory":2,"./d_Enum":3,"./d_ItemFactory":4,"./d_TileFactory":7,"./g_Animation":9,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_Player":17,"./kt_Kramtech":25}],16:[function(require,module,exports){
 function Observer(){
     this.listeners = [];
     this.params = null;
@@ -1495,6 +1495,7 @@ function Player(){
     
     this._player = true;
     this.partyMember = null;
+    this.input = null;
 }
 
 Player.prototype = Object.create(Actor.prototype);
@@ -1510,11 +1511,11 @@ Player.preAllocate = function(iAmount){
     }
 };
 
-Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
+Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput){
     if (Player.memLoc.length == 0) throw "Out of Player instances.";
     
     var player = Player.memLoc.pop();
-    player.init(oMapManager, oSprite, x, y, oPartyMember);
+    player.init(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput);
     
     return player;
 };
@@ -1523,11 +1524,12 @@ Player.free = function(oPlayer){
     Player.memLoc.push(oPlayer);
 };
 
-Player.prototype.init = function(oMapManager, oSprite, x, y, oPartyMember){
+Player.prototype.init = function(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput){
     Actor.prototype.init.call(this, oMapManager, oSprite, x, y);
     
     this.partyMember = oPartyMember;
     this.partyMember.position = this.position;
+    this.input = oPlayerInput;
 };
 
 Player.prototype.endTurn = function(){
@@ -1542,13 +1544,11 @@ Player.prototype.endTurn = function(){
 };
 
 Player.prototype.checkMovement = function(){
-    var Input = KT.Input;
-    
     var xTo = 0, yTo = 0;
-    if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
-    if (Input.isKeyDown(Input.vKeys.S)){ yTo =  1; }else
-    if (Input.isKeyDown(Input.vKeys.A)){ xTo = -1; }else
-    if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
+    if (this.input.isKeyDown('up')){ yTo = -1; }else
+    if (this.input.isKeyDown('down')){ yTo =  1; }else
+    if (this.input.isKeyDown('left')){ xTo = -1; }else
+    if (this.input.isKeyDown('right')){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
         this.moveTo(xTo, yTo);
@@ -1602,10 +1602,8 @@ Player.prototype.pickItem = function(oItem){
 };
 
 Player.prototype.checkAction = function(){
-    var Input = KT.Input;
-    
-    if (Input.isMouseDown()){
-        var mp = Input.mouse.position;
+    if (this.input.isMouseDown()){
+        var mp = this.input.mouse.position;
         
         var m = Math;
         var mx = m.floor(mp.x / 32 + this.mapManager.view.x);
@@ -1619,14 +1617,12 @@ Player.prototype.checkAction = function(){
             this.state = ActorState.END_TURN;
         }
         
-        Input.mouse.status = 2;
+        this.input.mouse.status = 2;
     }
 };
 
 Player.prototype.checkInput = function(){
-    var Input = KT.Input;
-    
-    if (Input.isKeyDown(Input.vKeys.SPACE)){ 
+    if (this.input.isKeyDown('space')){ 
         this.state = ActorState.END_TURN; 
         return;
     }
@@ -1650,7 +1646,100 @@ Player.prototype.update = function(){
     
     Actor.prototype.update.call(this);
 };
-},{"./d_Enum":3,"./d_ItemFactory":4,"./g_Actor":8,"./kt_Kramtech":24}],18:[function(require,module,exports){
+},{"./d_Enum":3,"./d_ItemFactory":4,"./g_Actor":8,"./kt_Kramtech":25}],18:[function(require,module,exports){
+var KT = require('./kt_Kramtech');
+
+function PlayerInput(oGame){
+    this.game = oGame;
+    this.mouse = {
+        position: KT.Vector2.allocate(0, 0),
+        status: 0
+    };
+    this.keys = {
+        left: 0,
+        right: 0,
+        up: 0,
+        down: 0,
+        
+        space: 0
+    };
+    
+    var thus = this;
+    oGame.inputObserver.register(function(oParams){ return thus.handleInput(oParams); });
+}
+
+module.exports = PlayerInput;
+
+PlayerInput.prototype.handleInput = function(oParams){
+    var Input = KT.Input;
+    var mouse = Input.mouse;
+    
+    switch (oParams.eventType){
+        case Input.EV_MOUSE_DOWN:
+            this.setMouse(mouse.position, 1);
+            break;
+        
+        case Input.EV_MOUSE_UP:
+            this.setMouse(mouse.position, 0);
+            break;
+            
+        case Input.EV_KEY_DOWN:
+            this.setKey(oParams.keyCode, 1);
+            break;
+            
+        case Input.EV_KEY_UP:
+            this.setKey(oParams.keyCode, 0);
+            break;
+    }
+    
+    return false;
+};
+
+PlayerInput.prototype.setMouse = function(oPosition, istatus){
+    this.mouse.position.set(oPosition.x, oPosition.y);
+    this.mouse.status = istatus;
+};
+
+PlayerInput.prototype.setKey = function(iKeycode, istatus){
+    var Input = KT.Input;
+    switch (iKeycode){
+        case Input.vKeys.W: this.keys.up = istatus; break;
+        case Input.vKeys.A: this.keys.left = istatus; break;
+        case Input.vKeys.S: this.keys.down = istatus; break;
+        case Input.vKeys.D: this.keys.right = istatus; break;
+        
+        case Input.vKeys.SPACE: this.keys.space = istatus; break;
+    }
+};
+
+PlayerInput.prototype.isKeyPressed = function(sKeyCode){
+    if (this.keys[sKeyCode] == 1){
+        this.keys[sKeyCode] = 2;
+        return true;
+    }
+    
+    return false;
+};
+
+PlayerInput.prototype.isKeyDown = function(sKeyCode){
+    if (this.keys[sKeyCode] == 1){ return true; }
+    return false;
+};
+
+PlayerInput.prototype.isMousePressed = function(){
+    if (this.mouse.status == 1){
+        this.mouse.status = 2;
+        return true;
+    }
+    
+    return false;
+};
+
+PlayerInput.prototype.isMouseDown = function(sKeyCode){
+    if (this.mouse.status == 1){ return true; }
+    return false;
+};
+},{"./kt_Kramtech":25}],19:[function(require,module,exports){
 var KT = require('./kt_Kramtech.js');
 var ItemFactory = require('./d_ItemFactory');
 var Enum = require('./d_Enum');
@@ -1692,7 +1781,7 @@ module.exports = {
         this.game = oGame;
         
         var thus = this;
-        oGame.inputObserver.register(function(oParams){ thus.handleInput(oParams); });
+        oGame.inputObserver.register(function(oParams){ return thus.handleInput(oParams); });
     },
     
     handleInput: function(oParams){
@@ -1973,7 +2062,7 @@ module.exports = {
         }
     }
 };
-},{"./d_Enum":3,"./d_ItemFactory":4,"./kt_Kramtech.js":24}],19:[function(require,module,exports){
+},{"./d_Enum":3,"./d_ItemFactory":4,"./kt_Kramtech.js":25}],20:[function(require,module,exports){
 var KT = require('./kt_Kramtech');
 var MapManager = require('./g_MapManager');
 var Console = require('./g_Console');
@@ -1988,6 +2077,7 @@ var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var Event = require('./g_Event');
 var Observer = require('./g_Observer');
+var PlayerInput = require('./g_PlayerInput');
 
 function Underworld(elDiv){
     var width = 854;
@@ -2006,6 +2096,8 @@ function Underworld(elDiv){
     
     this.inputObserver = new Observer();
     this.inputObserver.setParams({eventType: -1, keyCode: -1});
+    
+    this.playerInput = null;
     
     this.maps = [];
     this.map = null;
@@ -2066,6 +2158,8 @@ Underworld.prototype.newGame = function(){
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
+    
+    this.playerInput = new PlayerInput(this);
     
     this.console = new Console(this, this.sprites.f_font, this.canvas.width, 100, 5);
     this.console.addMessage("Wellcome to the new Underworld project");
@@ -2170,7 +2264,7 @@ String.prototype.startsOnVowel = function(){
     return (String.vowels.indexOf(fl) != -1);
 };
 
-},{"./d_EnemyFactory":2,"./d_ItemFactory":4,"./d_PlayerStats":6,"./g_Animation":9,"./g_Console":10,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_MapManager":15,"./g_Observer":16,"./g_Player":17,"./g_UI":18,"./kt_Kramtech":24}],20:[function(require,module,exports){
+},{"./d_EnemyFactory":2,"./d_ItemFactory":4,"./d_PlayerStats":6,"./g_Animation":9,"./g_Console":10,"./g_Enemy":11,"./g_Event":12,"./g_FloatText":13,"./g_Item":14,"./g_MapManager":15,"./g_Observer":16,"./g_Player":17,"./g_PlayerInput":18,"./g_UI":19,"./kt_Kramtech":25}],21:[function(require,module,exports){
 var Animation = require('./g_Animation');
 var AnimationFactory = require('./d_Animation');
 var Event = require('./g_Event');
@@ -2275,7 +2369,7 @@ module.exports = {
         mapManager.setEvents(events);
     }
 };
-},{"./d_Animation":1,"./d_Enum":3,"./g_Animation":9,"./g_Event":12}],21:[function(require,module,exports){
+},{"./d_Animation":1,"./d_Enum":3,"./g_Animation":9,"./g_Event":12}],22:[function(require,module,exports){
 function BoxCollision(x, y, w, h){
     this.x = x;
     this.y = y;
@@ -2300,7 +2394,7 @@ BoxCollision.prototype.update = function(x, y){
     this.x = x;
     this.y = y;
 };
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports = {
     createCanvas: function(iWidth, iHeight, elContainer){
         var canvas = document.createElement("canvas");
@@ -2391,7 +2485,7 @@ module.exports = {
         }
     }
 };
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2543,7 +2637,7 @@ module.exports = {
     	return false;
     }
 };
-},{"./kt_Utils":26,"./kt_Vector2":27}],24:[function(require,module,exports){
+},{"./kt_Utils":27,"./kt_Vector2":28}],25:[function(require,module,exports){
 var KT = {};
 
 window.empt = {};
@@ -2556,7 +2650,7 @@ KT.Utils = require('./kt_Utils');
 KT.Vector2 = require('./kt_Vector2');
 
 module.exports = KT;
-},{"./kt_BoxCollision":21,"./kt_Canvas":22,"./kt_Input":23,"./kt_Sprite":25,"./kt_Utils":26,"./kt_Vector2":27}],25:[function(require,module,exports){
+},{"./kt_BoxCollision":22,"./kt_Canvas":23,"./kt_Input":24,"./kt_Sprite":26,"./kt_Utils":27,"./kt_Vector2":28}],26:[function(require,module,exports){
 var Utils = require('./kt_Utils');
 var Vector2 = require('./kt_Vector2');
 
@@ -2674,7 +2768,7 @@ module.exports = {
         return width - 1;
     }
 };
-},{"./kt_Utils":26,"./kt_Vector2":27}],26:[function(require,module,exports){
+},{"./kt_Utils":27,"./kt_Vector2":28}],27:[function(require,module,exports){
 module.exports = {
     addEvent: function(elObj, sType, fCallback){
         if (elObj.addEventListener){
@@ -2733,7 +2827,7 @@ module.exports = {
 		return ang;
 	}
 };
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 function Vector2(x, y){
 	this.__ktv2 = true;
 	
@@ -2856,4 +2950,4 @@ Vector2.fromAngle = function(radian){
 	
 	return Vector2.allocate(x, y);
 };
-},{}]},{},[19]);
+},{}]},{},[20]);

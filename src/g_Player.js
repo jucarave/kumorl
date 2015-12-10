@@ -10,6 +10,7 @@ function Player(){
     
     this._player = true;
     this.partyMember = null;
+    this.input = null;
 }
 
 Player.prototype = Object.create(Actor.prototype);
@@ -25,11 +26,11 @@ Player.preAllocate = function(iAmount){
     }
 };
 
-Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember){
+Player.allocate = function(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput){
     if (Player.memLoc.length == 0) throw "Out of Player instances.";
     
     var player = Player.memLoc.pop();
-    player.init(oMapManager, oSprite, x, y, oPartyMember);
+    player.init(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput);
     
     return player;
 };
@@ -38,11 +39,12 @@ Player.free = function(oPlayer){
     Player.memLoc.push(oPlayer);
 };
 
-Player.prototype.init = function(oMapManager, oSprite, x, y, oPartyMember){
+Player.prototype.init = function(oMapManager, oSprite, x, y, oPartyMember, oPlayerInput){
     Actor.prototype.init.call(this, oMapManager, oSprite, x, y);
     
     this.partyMember = oPartyMember;
     this.partyMember.position = this.position;
+    this.input = oPlayerInput;
 };
 
 Player.prototype.endTurn = function(){
@@ -57,13 +59,11 @@ Player.prototype.endTurn = function(){
 };
 
 Player.prototype.checkMovement = function(){
-    var Input = KT.Input;
-    
     var xTo = 0, yTo = 0;
-    if (Input.isKeyDown(Input.vKeys.W)){ yTo = -1; }else
-    if (Input.isKeyDown(Input.vKeys.S)){ yTo =  1; }else
-    if (Input.isKeyDown(Input.vKeys.A)){ xTo = -1; }else
-    if (Input.isKeyDown(Input.vKeys.D)){ xTo =  1; }
+    if (this.input.isKeyDown('up')){ yTo = -1; }else
+    if (this.input.isKeyDown('down')){ yTo =  1; }else
+    if (this.input.isKeyDown('left')){ xTo = -1; }else
+    if (this.input.isKeyDown('right')){ xTo =  1; }
     
     if (xTo != 0 || yTo != 0){
         this.moveTo(xTo, yTo);
@@ -117,10 +117,8 @@ Player.prototype.pickItem = function(oItem){
 };
 
 Player.prototype.checkAction = function(){
-    var Input = KT.Input;
-    
-    if (Input.isMouseDown()){
-        var mp = Input.mouse.position;
+    if (this.input.isMouseDown()){
+        var mp = this.input.mouse.position;
         
         var m = Math;
         var mx = m.floor(mp.x / 32 + this.mapManager.view.x);
@@ -134,14 +132,12 @@ Player.prototype.checkAction = function(){
             this.state = ActorState.END_TURN;
         }
         
-        Input.mouse.status = 2;
+        this.input.mouse.status = 2;
     }
 };
 
 Player.prototype.checkInput = function(){
-    var Input = KT.Input;
-    
-    if (Input.isKeyDown(Input.vKeys.SPACE)){ 
+    if (this.input.isKeyDown('space')){ 
         this.state = ActorState.END_TURN; 
         return;
     }

@@ -39,7 +39,7 @@ module.exports = {
         this.game = oGame;
         
         var thus = this;
-        oGame.inputObserver.register(function(oParams){ thus.handleInput(oParams); });
+        oGame.inputObserver.register(function(oParams){ return thus.handleInput(oParams); });
     },
     
     handleInput: function(oParams){

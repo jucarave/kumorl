@@ -98,7 +98,7 @@ MapManager.prototype.loadMap = function(sMapName){
             thus.instances.push(Item.allocate(thus, item.x, item.y, ItemFactory.getItem(item.item, item.amount, item.status), item.params));
         }
         
-        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0]);
+        thus.player = Player.allocate(thus, thus.game.sprites.player, 3, 3, thus.game.party[0], thus.game.playerInput);
         
         var e = Enemy.allocate(thus, thus.game.sprites.bat, 9, 4, EnemyFactory.getEnemy('bat'));
         thus.instances.push(e);

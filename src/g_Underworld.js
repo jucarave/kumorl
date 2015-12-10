@@ -12,6 +12,7 @@ var FloatText = require('./g_FloatText');
 var Animation = require('./g_Animation');
 var Event = require('./g_Event');
 var Observer = require('./g_Observer');
+var PlayerInput = require('./g_PlayerInput');
 
 function Underworld(elDiv){
     var width = 854;
@@ -30,6 +31,8 @@ function Underworld(elDiv){
     
     this.inputObserver = new Observer();
     this.inputObserver.setParams({eventType: -1, keyCode: -1});
+    
+    this.playerInput = null;
     
     this.maps = [];
     this.map = null;
@@ -90,6 +93,8 @@ Underworld.prototype.newGame = function(){
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
+    
+    this.playerInput = new PlayerInput(this);
     
     this.console = new Console(this, this.sprites.f_font, this.canvas.width, 100, 5);
     this.console.addMessage("Wellcome to the new Underworld project");
