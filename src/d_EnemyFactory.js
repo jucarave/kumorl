@@ -2,7 +2,7 @@ module.exports = {
     memLoc: [],
     
     enemies: {
-        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '2D3', dfs: '1D4' }
+        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: 2, dfs: 2 }
     },
     
     preAllocate: function(iAmount){

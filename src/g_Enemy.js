@@ -46,7 +46,7 @@ Enemy.prototype.endTurn = function(){
 };
 
 Enemy.prototype.receiveDamage = function(iDmg){
-    var dfs = this.game.rollDice(this.enemyStats.ref.dfs);
+    var dfs = this.enemyStats.ref.dfs;
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){

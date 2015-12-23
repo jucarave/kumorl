@@ -63,6 +63,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.ui_playerStats = Sprite.loadSprite('img/ui/sprPlayerStats.png');
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
+    this.sprites.ui_arrows = Sprite.loadSprite('img/ui/sprUIArrows.png', 16, 16);
     
     this.sprites.player = Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});

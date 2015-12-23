@@ -82,7 +82,7 @@ Player.prototype.attackTo = function(oEnemy){
     
     this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name, 'red');
     
-    var dmg = this.game.rollDice(this.partyMember.atk);
+    var dmg = this.partyMember.atk;
     this.mapManager.createAttack(oEnemy, dmg, 'slice');
     
     this.state = ActorState.END_TURN;

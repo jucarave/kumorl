@@ -8,7 +8,7 @@ module.exports = {
     memLoc: [],
     
     enemies: {
-        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: '2D3', dfs: '1D4' }
+        bat: { name: 'Giant bat', code: 'bat', hp: 20, atk: 2, dfs: 2 }
     },
     
     preAllocate: function(iAmount){
@@ -613,7 +613,7 @@ Enemy.prototype.endTurn = function(){
 };
 
 Enemy.prototype.receiveDamage = function(iDmg){
-    var dfs = this.game.rollDice(this.enemyStats.ref.dfs);
+    var dfs = this.enemyStats.ref.dfs;
     var dmg = iDmg - dfs;
     
     if (dmg <= 0){
@@ -1567,7 +1567,7 @@ Player.prototype.attackTo = function(oEnemy){
     
     this.game.console.addMessage("Attacking " + oEnemy.enemyStats.ref.name, 'red');
     
-    var dmg = this.game.rollDice(this.partyMember.atk);
+    var dmg = this.partyMember.atk;
     this.mapManager.createAttack(oEnemy, dmg, 'slice');
     
     this.state = ActorState.END_TURN;
@@ -1766,10 +1766,11 @@ module.exports = {
     
     uiLabels: ["Name",null,"Level","Exp","Next",null,"Health","Mana","Stamina",null,"Alchemy","Archery","Cookery","Crafting","Defense","Heavy Armor","Light Armor","Luck","One Handed","Speed","Strength","Two Handed","Wisdom"],
     uiStats: ["name",null,"level","exp","next",null,["hp","mHp"],["mp","mMp"],["stm","mStm"],null,"alch","arch","fdPv","crft","dfs","hvyA","lgtA","luk","oneH","spd","atk","twoH","wis"],
-    uiStatsScroll: 10,
+    uiStatsScroll: 0,
     
     uiPanels: [
-        {x: 237, y: 432, w: 617, h: 470}
+        {x1: 237, y1: 432, x2: 617, y2: 470},
+        {x1: 8, y1: 198, x2: 382, y2: 425}
     ],
     
     _updatePlayerStats: true,
@@ -1786,31 +1787,23 @@ module.exports = {
     
     handleInput: function(oParams){
         var Input = KT.Input;
-        var map = this.game.map;
         
         switch (oParams.eventType){
             case Input.EV_MOUSE_DOWN:
                 var onPanel = this.onUIPanel(Input.mouse.position);
                 if (onPanel){
-                    if (map.turn == MapTurn.PLAYER_TURN){
-                        map.startUITurn();
-                        
-                        this.mouse.position.set(Input.mouse.position.x, Input.mouse.position.y);
-                        this.mouse.stat = 1;
-                        
-                        return true;
-                    }
+                    this.mouse.position.set(Input.mouse.position.x, Input.mouse.position.y);
+                    this.mouse.stat = 1;
+                    
+                    return true;
                 }
                 break;
             
             case Input.EV_MOUSE_UP:
-                if (map.turn == MapTurn.UI_TURN){
-                    map.endTurn();
-                    
+                if (this.mouse.stat > 0){
                     this.mouse.stat = 3;
-                    
-                    return true;
                 }
+                
                 break;
                 
             case Input.EV_KEY_DOWN:
@@ -1833,7 +1826,7 @@ module.exports = {
         for (var i=0,len=this.uiPanels.length;i<len;i++){
             var panel = this.uiPanels[i];
             
-            if (oPosition.x >= panel.x && oPosition.y >= panel.y && oPosition.x < panel.w && oPosition.y < panel.h){
+            if (oPosition.x >= panel.x1 && oPosition.y >= panel.y1 && oPosition.x < panel.x2 && oPosition.y < panel.y2){
                 return true;
             }
         }
@@ -1869,7 +1862,7 @@ module.exports = {
         this._updatePlayerStats = false;
     },
     
-    drawoPlayerStats: function(oGame, oPlayer){
+    drawPlayerStats: function(oGame, oPlayer){
         var Canvas = KT.Canvas;
         
         Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerMini, 8, 425, 0, 0);
@@ -1894,6 +1887,9 @@ module.exports = {
         
         Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
         oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
+        
+        if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
+        if (this.uiStatsScroll < this.uiLabels.length - 15) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 380, 1, 0);
     },
     
     drawInventory: function(oGame, oPlayer){
@@ -1926,7 +1922,7 @@ module.exports = {
         oGame.map.drawAutoMap(712, 338);
         var player = oGame.party[0];
         
-        this.drawoPlayerStats(oGame, player);
+        this.drawPlayerStats(oGame, player);
         this.drawInventory(oGame, player);
     },
     
@@ -1945,6 +1941,7 @@ module.exports = {
         }
         
         if (this.mouse.lastClick > 0){
+            oGame.map.endTurn();
             oPlayer.useItem(slot);
             this.mouse.stat = 2;
             this.mouse.lastClick = 0;
@@ -2006,6 +2003,7 @@ module.exports = {
             ItemFactory.free(this.drag.item);
         }
         
+        oGame.map.endTurn();
         this.drag.item = null;
     },
     
@@ -2027,16 +2025,18 @@ module.exports = {
         ItemFactory.free(this.drag.item);
         oPlayer.items[this.drag.slot] = null;
         this.drag.item = null;
+        
+        oGame.map.endTurn();
     },
     
-    checkAction: function(oGame){
+    checkInventoryAction: function(oGame){
         if (this.mouse.lastClick > 0) this.mouse.lastClick -= 1;
         
         var player = oGame.party[0];
         var pos = KT.Input.mouse.position;
         
         var invPanel = this.uiPanels[0];
-        var onInventory = (pos.x >= invPanel.x && pos.y >= invPanel.y && pos.x < invPanel.w && pos.y < invPanel.h);
+        var onInventory = (pos.x >= invPanel.x1 && pos.y >= invPanel.y1 && pos.x < invPanel.x2 && pos.y < invPanel.y2);
         
         if ((this.mouse.stat == 1 || this.mouse.stat == 2) && onInventory){
             this.pickFromInventory(oGame, player);
@@ -2060,6 +2060,33 @@ module.exports = {
                 this.drag.item = null;
             }
         }
+    },
+    
+    checkPlayerStatsAction: function(oGame){
+        //var player = oGame.party[0];
+        var pos = KT.Input.mouse.position;
+        
+        var statsPanel = this.uiPanels[1];
+        var onPanel = (pos.x >= statsPanel.x1 && pos.y >= statsPanel.y1 && pos.x < statsPanel.x2 && pos.y < statsPanel.y2);
+        
+        if (onPanel && this.mouse.stat == 1){
+            if (pos.x >= 350 && pos.x < 366 && pos.y >= 214 && pos.y < 230 && this.uiStatsScroll > 0){
+                this.uiStatsScroll -= 1;
+                this._updatePlayerStats = true;
+            }else if (pos.x >= 350 && pos.x < 366 && pos.y >= 380 && pos.y < 396 && this.uiStatsScroll < this.uiLabels.length - 15){
+                this.uiStatsScroll += 1;
+                this._updatePlayerStats = true;
+            }
+            
+            this.mouse.stat = 2;
+        }
+    },
+    
+    checkAction: function(oGame){
+        if (oGame.map.turn != MapTurn.PLAYER_TURN) return;
+        
+        this.checkInventoryAction(oGame);
+        this.checkPlayerStatsAction(oGame);
     }
 };
 },{"./d_Enum":3,"./d_ItemFactory":4,"./kt_Kramtech.js":25}],20:[function(require,module,exports){
@@ -2128,6 +2155,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.ui_playerStats = Sprite.loadSprite('img/ui/sprPlayerStats.png');
     this.sprites.ui_map = Sprite.loadSprite('img/ui/sprMapUI.png');
     this.sprites.ui_inventory = Sprite.loadSprite('img/ui/sprInventory.png');
+    this.sprites.ui_arrows = Sprite.loadSprite('img/ui/sprUIArrows.png', 16, 16);
     
     this.sprites.player = Sprite.loadSprite('img/characters/sprPlayer.png', 32, 32, {origin: centerOr});
     this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
