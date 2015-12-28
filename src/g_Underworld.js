@@ -69,6 +69,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
 
     this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
+    this.sprites.equipment = Sprite.loadSprite('img/items/sprEquipment.png', 32, 32);
     
     this.sprites.animations = Sprite.loadSprite('img/animations/sprAnimations.png', 32, 32);
 };
@@ -94,6 +95,7 @@ Underworld.prototype.newGame = function(){
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
+    this.party[0].equipment.chest = ItemFactory.getItem('leatherArmor', 1, 1);
     
     this.playerInput = new PlayerInput(this);
     

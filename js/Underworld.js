@@ -60,8 +60,7 @@ module.exports = {
     MAP: {
         PLAYER_TURN: 0,
         WORLD_TURN: 1,
-        EVENT_TURN: 2,
-        UI_TURN: 3
+        EVENT_TURN: 2
     },
     
     EVENT: {
@@ -87,7 +86,10 @@ module.exports = {
     memLoc: [],
     
     items: {
-        sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), type: 'weapon' },
+        noChest: { code: 'noChest', uiPosition: new Position(0, 0), type: 'chest' },
+        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 0), type: 'chest' },
+        
+        sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), uiPosition: new Position(0, 0), type: 'weapon' },
         
         potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: Magic.heal },
         
@@ -192,6 +194,9 @@ function PlayerStats(oGame){
     this.crft = 2;
     
     this.items = new Array(10);
+    this.equipment = {
+        chest: null
+    };
 }
 
 module.exports = PlayerStats;
@@ -1769,8 +1774,9 @@ module.exports = {
     uiStatsScroll: 0,
     
     uiPanels: [
-        {x1: 237, y1: 432, x2: 617, y2: 470},
-        {x1: 8, y1: 198, x2: 382, y2: 425}
+        {x1: 237, y1: 432, x2: 617, y2: 470, active: true},   // Inventory
+        {x1: 8, y1: 425, x2: 155, y2: 472, active: true},     // Mini UI
+        {x1: 8, y1: 198, x2: 382, y2: 425, active: false}      // Stats
     ],
     
     _updatePlayerStats: true,
@@ -1826,6 +1832,7 @@ module.exports = {
         for (var i=0,len=this.uiPanels.length;i<len;i++){
             var panel = this.uiPanels[i];
             
+            if (!panel.active) continue;
             if (oPosition.x >= panel.x1 && oPosition.y >= panel.y1 && oPosition.x < panel.x2 && oPosition.y < panel.y2){
                 return true;
             }
@@ -1885,11 +1892,18 @@ module.exports = {
         
         if (this._updatePlayerStats) this.updatePlayerStatsUI(oGame, oPlayer);
         
-        Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
-        oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
-        
-        if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
-        if (this.uiStatsScroll < this.uiLabels.length - 15) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 380, 1, 0);
+        if (this.uiPanels[2].active){
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
+            oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
+            
+            if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
+            if (this.uiStatsScroll < this.uiLabels.length - 15) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 380, 1, 0);
+            
+            var chest = oPlayer.equipment.chest;
+            if (chest){ chest = chest.ref; }else{ chest = ItemFactory.items.noChest; }
+            
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 69, 253, chest.uiPosition.x, chest.uiPosition.y);
+        }
     },
     
     drawInventory: function(oGame, oPlayer){
@@ -2070,6 +2084,15 @@ module.exports = {
         var onPanel = (pos.x >= statsPanel.x1 && pos.y >= statsPanel.y1 && pos.x < statsPanel.x2 && pos.y < statsPanel.y2);
         
         if (onPanel && this.mouse.stat == 1){
+            this.uiPanels[2].active = !this.uiPanels[2].active;
+            this.mouse.stat = 2;
+            return;
+        }
+        
+        statsPanel = this.uiPanels[2];
+        onPanel = (pos.x >= statsPanel.x1 && pos.y >= statsPanel.y1 && pos.x < statsPanel.x2 && pos.y < statsPanel.y2);
+        
+        if (onPanel && this.mouse.stat == 1){
             if (pos.x >= 350 && pos.x < 366 && pos.y >= 214 && pos.y < 230 && this.uiStatsScroll > 0){
                 this.uiStatsScroll -= 1;
                 this._updatePlayerStats = true;
@@ -2161,6 +2184,7 @@ Underworld.prototype.loadImages = function(){
     this.sprites.bat = Sprite.loadSprite('img/characters/sprBat.png', 32, 32, {origin: centerOr});
 
     this.sprites.items = Sprite.loadSprite('img/items/sprItems.png', 32, 32);
+    this.sprites.equipment = Sprite.loadSprite('img/items/sprEquipment.png', 32, 32);
     
     this.sprites.animations = Sprite.loadSprite('img/animations/sprAnimations.png', 32, 32);
 };
@@ -2186,6 +2210,7 @@ Underworld.prototype.newGame = function(){
     
     this.party.push(new PlayerStats(this));
     this.party[0].name = 'Kram';
+    this.party[0].equipment.chest = ItemFactory.getItem('leatherArmor', 1, 1);
     
     this.playerInput = new PlayerInput(this);
     

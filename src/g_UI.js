@@ -27,8 +27,9 @@ module.exports = {
     uiStatsScroll: 0,
     
     uiPanels: [
-        {x1: 237, y1: 432, x2: 617, y2: 470},
-        {x1: 8, y1: 198, x2: 382, y2: 425}
+        {x1: 237, y1: 432, x2: 617, y2: 470, active: true},   // Inventory
+        {x1: 8, y1: 425, x2: 155, y2: 472, active: true},     // Mini UI
+        {x1: 8, y1: 198, x2: 382, y2: 425, active: false}      // Stats
     ],
     
     _updatePlayerStats: true,
@@ -84,6 +85,7 @@ module.exports = {
         for (var i=0,len=this.uiPanels.length;i<len;i++){
             var panel = this.uiPanels[i];
             
+            if (!panel.active) continue;
             if (oPosition.x >= panel.x1 && oPosition.y >= panel.y1 && oPosition.x < panel.x2 && oPosition.y < panel.y2){
                 return true;
             }
@@ -143,11 +145,18 @@ module.exports = {
         
         if (this._updatePlayerStats) this.updatePlayerStatsUI(oGame, oPlayer);
         
-        Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
-        oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
-        
-        if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
-        if (this.uiStatsScroll < this.uiLabels.length - 15) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 380, 1, 0);
+        if (this.uiPanels[2].active){
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
+            oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
+            
+            if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
+            if (this.uiStatsScroll < this.uiLabels.length - 15) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 380, 1, 0);
+            
+            var chest = oPlayer.equipment.chest;
+            if (chest){ chest = chest.ref; }else{ chest = ItemFactory.items.noChest; }
+            
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 69, 253, chest.uiPosition.x, chest.uiPosition.y);
+        }
     },
     
     drawInventory: function(oGame, oPlayer){
@@ -326,6 +335,15 @@ module.exports = {
         
         var statsPanel = this.uiPanels[1];
         var onPanel = (pos.x >= statsPanel.x1 && pos.y >= statsPanel.y1 && pos.x < statsPanel.x2 && pos.y < statsPanel.y2);
+        
+        if (onPanel && this.mouse.stat == 1){
+            this.uiPanels[2].active = !this.uiPanels[2].active;
+            this.mouse.stat = 2;
+            return;
+        }
+        
+        statsPanel = this.uiPanels[2];
+        onPanel = (pos.x >= statsPanel.x1 && pos.y >= statsPanel.y1 && pos.x < statsPanel.x2 && pos.y < statsPanel.y2);
         
         if (onPanel && this.mouse.stat == 1){
             if (pos.x >= 350 && pos.x < 366 && pos.y >= 214 && pos.y < 230 && this.uiStatsScroll > 0){

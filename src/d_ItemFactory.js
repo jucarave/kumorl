@@ -10,7 +10,10 @@ module.exports = {
     memLoc: [],
     
     items: {
-        sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), type: 'weapon' },
+        noChest: { code: 'noChest', uiPosition: new Position(0, 0), type: 'chest' },
+        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 0), type: 'chest' },
+        
+        sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), uiPosition: new Position(0, 0), type: 'weapon' },
         
         potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: Magic.heal },
         

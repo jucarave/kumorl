@@ -9,8 +9,7 @@ module.exports = {
     MAP: {
         PLAYER_TURN: 0,
         WORLD_TURN: 1,
-        EVENT_TURN: 2,
-        UI_TURN: 3
+        EVENT_TURN: 2
     },
     
     EVENT: {

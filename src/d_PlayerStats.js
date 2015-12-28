@@ -30,6 +30,9 @@ function PlayerStats(oGame){
     this.crft = 2;
     
     this.items = new Array(10);
+    this.equipment = {
+        chest: null
+    };
 }
 
 module.exports = PlayerStats;
