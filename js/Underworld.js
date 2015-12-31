@@ -86,10 +86,17 @@ module.exports = {
     memLoc: [],
     
     items: {
-        noChest: { code: 'noChest', uiPosition: new Position(0, 0), type: 'chest' },
-        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 0), type: 'chest' },
+        noChest: { code: 'noChest', uiPosition: new Position(0, 1), type: 'chest' },
+        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 1), type: 'chest' },
         
+        noWeapon: { code: 'noWeapon', uiPosition: new Position(0, 3), type: 'weapon' },
         sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), uiPosition: new Position(0, 0), type: 'weapon' },
+        
+        noHelmet: { code: 'noHelmet', uiPosition: new Position(0, 0), type: 'helmet' },
+        
+        noFeet: { code: 'noFeet', uiPosition: new Position(0, 2), type: 'feet' },
+        
+        noRing: { code: 'noRing', uiPosition: new Position(0, 4), type: 'ring' },
         
         potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: Magic.heal },
         
@@ -1894,6 +1901,17 @@ module.exports = {
         
         if (this.uiPanels[2].active){
             Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_playerStats, 8, 190, 0, 0);
+            
+            var pos = KT.Input.mouse.position;
+            if (pos.x >= 169 && pos.x <= 370 && pos.y >= 230 && pos.y <= 380){
+                var posScroll = ((pos.y - 230) / 10) << 0;
+                
+                if (this.uiLabels[posScroll + this.uiStatsScroll] != null){
+                    oGame.ctx.fillStyle = "#888888";
+                    oGame.ctx.fillRect(169, 230 + posScroll * 10, 201, 10);
+                }
+            }
+            
             oGame.ctx.drawImage(oGame.playerStatsSurface.canvas, 170, 230);
             
             if (this.uiStatsScroll > 0) Canvas.drawSprite(oGame.ctx, oGame.sprites.ui_arrows, 350, 214, 0, 0);
@@ -1901,8 +1919,31 @@ module.exports = {
             
             var chest = oPlayer.equipment.chest;
             if (chest){ chest = chest.ref; }else{ chest = ItemFactory.items.noChest; }
-            
             Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 69, 253, chest.uiPosition.x, chest.uiPosition.y);
+            
+            var helmet = oPlayer.equipment.helmet;
+            if (helmet){ helmet = helmet.ref; }else{ helmet = ItemFactory.items.noHelmet; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 69, 202, helmet.uiPosition.x, helmet.uiPosition.y);
+            
+            var feet = oPlayer.equipment.feet;
+            if (feet){ feet = feet.ref; }else{ feet = ItemFactory.items.noFeet; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 69, 320, feet.uiPosition.x, feet.uiPosition.y);
+            
+            var rArm = oPlayer.equipment.rArm;
+            if (rArm){ rArm = rArm.ref; }else{ rArm = ItemFactory.items.noWeapon; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 25, 293, rArm.uiPosition.x, rArm.uiPosition.y);
+            
+            var lArm = oPlayer.equipment.rArm;
+            if (lArm){ lArm = lArm.ref; }else{ lArm = ItemFactory.items.noWeapon; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 113, 293, lArm.uiPosition.x, lArm.uiPosition.y);
+            
+            var ring1 = oPlayer.equipment.ring1;
+            if (ring1){ ring1 = ring1.ref; }else{ ring1 = ItemFactory.items.noRing; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 19, 241, ring1.uiPosition.x, ring1.uiPosition.y);
+            
+            var ring2 = oPlayer.equipment.ring2;
+            if (ring2){ ring2 = ring2.ref; }else{ ring2 = ItemFactory.items.noRing; }
+            Canvas.drawSprite(oGame.ctx, oGame.sprites.equipment, 119, 241, ring2.uiPosition.x, ring2.uiPosition.y);
         }
     },
     

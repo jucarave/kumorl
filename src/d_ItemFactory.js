@@ -10,10 +10,17 @@ module.exports = {
     memLoc: [],
     
     items: {
-        noChest: { code: 'noChest', uiPosition: new Position(0, 0), type: 'chest' },
-        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 0), type: 'chest' },
+        noChest: { code: 'noChest', uiPosition: new Position(0, 1), type: 'chest' },
+        leatherArmor: { name: 'Leather armor', code: 'leatherAmor', imageIndex: new Position(1, 0), uiPosition: new Position(1, 1), type: 'chest' },
         
+        noWeapon: { code: 'noWeapon', uiPosition: new Position(0, 3), type: 'weapon' },
         sword: { name: 'Sword', code: 'sword', imageIndex: new Position(1, 0), uiPosition: new Position(0, 0), type: 'weapon' },
+        
+        noHelmet: { code: 'noHelmet', uiPosition: new Position(0, 0), type: 'helmet' },
+        
+        noFeet: { code: 'noFeet', uiPosition: new Position(0, 2), type: 'feet' },
+        
+        noRing: { code: 'noRing', uiPosition: new Position(0, 4), type: 'ring' },
         
         potion: { name: 'Red potion', code: 'potion', imageIndex: new Position(2, 0), type: 'item', stack: true, onUse: Magic.heal },
         
